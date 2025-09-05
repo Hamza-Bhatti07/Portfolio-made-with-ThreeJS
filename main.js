@@ -40,9 +40,9 @@ const projects = {
 
 // Billboard text - EDIT THIS SECTION
 const billboardText = {
-    name: "UNDER SONSTRUCTION!!!!",
+    name: "UNDER CONSTRUCTION!!!!",
     title: "I'm a Computer Science Student",
-    subtitle: ""
+    subtitle: "Sleep deprived rn"
 };
 
 // Three.js setup
@@ -1034,4 +1034,5 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the scene
     init();
     animate();
+
 });
