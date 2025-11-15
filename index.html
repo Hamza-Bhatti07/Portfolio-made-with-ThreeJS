@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS Portfolio - Interactive Playground</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="loading-screen" id="loading-screen">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <h2>Loading Playground...</h2>
+            <p>Preparing your interactive portfolio</p>
+        </div>
+    </div>
+    
+    <div class="info-panel">
+        <h3 class="info-title">Welcome to My Portfolio!</h3>
+        <p class="info-text">
+            Hello! I'm a Computer Science undergraduate student passionate about creating innovative solutions. 
+            Explore my projects by interacting with the playground equipment!
+        </p>
+        <div class="modal-tech">
+            <span class="tech-tag">JavaScript</span>
+            <span class="tech-tag">Python</span>
+            <span class="tech-tag">React</span>
+            <span class="tech-tag">Node.js</span>
+        </div>
+    </div>
+    
+    <!-- Project Modal Template -->
+    <div class="project-modal" id="project-modal">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modal-title">Project Title</h2>
+            <button class="close-btn" id="close-modal-btn">&times;</button>
+        </div>
+        <div class="modal-content">
+            <p id="modal-description">Project description goes here...</p>
+            <div class="modal-tech" id="modal-tech-tags"></div>
+            <div class="modal-links" id="modal-links"></div>
+        </div>
+    </div>
+    
+    <!-- Load libraries from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/cannon@0.6.2/build/cannon.min.js" 
+            onerror="console.warn('CANNON.js failed to load from CDN. Physics will be disabled.');"></script>
+    
+    <!-- Load our script after libraries -->
+    <script src="main.js"></script>
+</body>
+</html>
