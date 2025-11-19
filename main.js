@@ -1,32 +1,5 @@
 // Project data template - EDIT THIS SECTION
 const projects = {
-    swing1: {
-        title: "Swing Project 1",
-        description: "An interactive web application that demonstrates real-time physics simulation using JavaScript and WebGL. This project showcases advanced animation techniques and user interaction patterns.",
-        technologies: ["JavaScript", "WebGL", "Physics", "Animation"],
-        links: [
-            { text: "Live Demo", url: "#", type: "primary" },
-            { text: "GitHub", url: "#", type: "secondary" }
-        ]
-    },
-    swing2: {
-        title: "Swing Project 2",
-        description: "A full-stack application built with modern frameworks, featuring a responsive design and seamless user experience. This project demonstrates proficiency in both frontend and backend development.",
-        technologies: ["React", "Node.js", "MongoDB", "Express"],
-        links: [
-            { text: "View Project", url: "#", type: "primary" },
-            { text: "Source Code", url: "#", type: "secondary" }
-        ]
-    },
-    swing3: {
-        title: "Swing Project 3",
-        description: "A machine learning application that analyzes and predicts patterns in large datasets. This project showcases data preprocessing, model training, and visualization capabilities.",
-        technologies: ["Python", "TensorFlow", "Pandas", "Flask"],
-        links: [
-            { text: "Documentation", url: "#", type: "primary" },
-            { text: "Research Paper", url: "#", type: "secondary" }
-        ]
-    },
     swing: {
         title: "Swing Project",
         description: "An interactive web application that demonstrates real-time physics simulation using JavaScript and WebGL. This project showcases advanced animation techniques and user interaction patterns.",
@@ -355,7 +328,7 @@ function createBillboard() {
     const standGeometry = new THREE.BoxGeometry(1, 8, 1);
     const standMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
     const stand = new THREE.Mesh(standGeometry, standMaterial);
-    stand.position.set(0, 4, -15);
+    stand.position.set(0, 4, -15.59);
     stand.castShadow = true;
     stand.name = "billboard-stand";
     scene.add(stand);
@@ -380,12 +353,12 @@ function createBillboard() {
     context.fillStyle = '#f0f0f0';
     context.fillRect(0, 0, 512, 256);
     context.fillStyle = '#333';
-    context.font = 'bold 32px Arial';
+    context.font = 'bold 36px Arial';
     context.textAlign = 'center';
     context.fillText(billboardText.name, 256, 80);
-    context.font = '20px Arial';
+    context.font = 'bold 26px Arial';
     context.fillText(billboardText.title, 256, 120);
-    context.font = '16px Arial';
+    context.font = '20px Arial';
     context.fillText(billboardText.subtitle, 256, 160);
     
     const texture = new THREE.CanvasTexture(canvas);
@@ -496,65 +469,88 @@ function createSwing(position, projectKey) {
     debugLog(`Swing ${projectKey} created`);
 }
 
-// Removed createMultipleSwings - no longer using redundant swings
-
 function createSlide() {
     debugLog("Creating slide...");
     
-    const slideGroup = new THREE.Group();
-    slideGroup.name = "slide-group";
+    // Create a group for all slide components
+    const slideStructure = new THREE.Group();
+    slideStructure.name = "slide-structure";
     
-    // Slide structure - RED colored
-    const slideGeometry = new THREE.BoxGeometry(6, 0.2, 2);
+    // Define materials for reuse
     const slideMaterial = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
-    const slide = new THREE.Mesh(slideGeometry, slideMaterial);
-    slide.rotation.z = -Math.PI / 6;
-    slide.position.set(0, 3, 0);
-    slide.castShadow = true;
-    slide.name = "slide-surface";
-    slideGroup.add(slide);
-    
-    // Slide sides
-    const sideGeometry = new THREE.BoxGeometry(0.2, 2, 2);
-    const leftSide = new THREE.Mesh(sideGeometry, slideMaterial);
-    leftSide.position.set(-2.8, 2, 0);
-    leftSide.rotation.z = -Math.PI / 6;
-    leftSide.castShadow = true;
-    leftSide.name = "slide-left-side";
-    slideGroup.add(leftSide);
-    
-    const rightSide = new THREE.Mesh(sideGeometry, slideMaterial);
-    rightSide.position.set(2.8, 2, 0);
-    rightSide.rotation.z = -Math.PI / 6;
-    rightSide.castShadow = true;
-    rightSide.name = "slide-right-side";
-    slideGroup.add(rightSide);
-    
-    // Ladder
-    const ladderGeometry = new THREE.BoxGeometry(0.3, 4, 0.3);
     const ladderMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
     
-    const leftLadder = new THREE.Mesh(ladderGeometry, ladderMaterial);
-    leftLadder.position.set(-0.5, 2, -1);
-    leftLadder.name = "slide-left-ladder";
-    slideGroup.add(leftLadder);
+    // Create the main slide surface
+    const slideSurfaceGeometry = new THREE.BoxGeometry(7.5, 0.3, 2);
+    const slideSurface = new THREE.Mesh(slideSurfaceGeometry, slideMaterial);
     
-    const rightLadder = new THREE.Mesh(ladderGeometry, ladderMaterial);
-    rightLadder.position.set(0.5, 2, -1);
-    rightLadder.name = "slide-right-ladder";
-    slideGroup.add(rightLadder);
+    // Rotate the slide to face right side (90 degrees on Y axis)
+    slideSurface.rotation.z = -Math.PI / 5.5;
+    slideSurface.position.set(0.79, 2.011, 0);
+    slideSurface.castShadow = true;
+    slideSurface.name = "slide-surface";
+    slideStructure.add(slideSurface);
     
-    slideGroup.position.set(10, 0, 0);
-    scene.add(slideGroup);
+    // Create ladder side rails
+    const ladderRailGeometry = new THREE.BoxGeometry(0.3, 4, 0.3);
     
+    const leftLadderRail = new THREE.Mesh(ladderRailGeometry, ladderMaterial);
+    leftLadderRail.position.set(-2.4, 2, 1);
+    leftLadderRail.name = "slide-left-ladder-rail";
+    slideStructure.add(leftLadderRail);
+    
+    const rightLadderRail = new THREE.Mesh(ladderRailGeometry, ladderMaterial);
+    rightLadderRail.position.set(-2.4, 2, -1);
+    rightLadderRail.name = "slide-right-ladder-rail";
+    slideStructure.add(rightLadderRail);
+
+    const newLeftRail = new THREE.Mesh(ladderRailGeometry, ladderMaterial);
+    newLeftRail.position.set(-4.6, 2, 1); // Positioned just outside the left rail
+    newLeftRail.name = "slide-new-left-rail";
+    slideStructure.add(newLeftRail);
+
+    const newRightRail = new THREE.Mesh(ladderRailGeometry, ladderMaterial);
+    newRightRail.position.set(-4.6, 2, -1); // Positioned just outside the right rail
+    newRightRail.name = "slide-new-right-rail";
+    slideStructure.add(newRightRail);
+    
+    // Create ladder steps
+    const stepGeometry = new THREE.BoxGeometry(2.5, 0.2, 0.3);
+    const stepCount = 5;
+    const stepSpacing = 3.5 / stepCount;
+    
+    for (let i = 0; i < stepCount; i++) {
+        const step = new THREE.Mesh(stepGeometry, ladderMaterial);
+        step.position.set(-3.5, 0.5 + (i * stepSpacing), 1);
+        step.castShadow = true;
+        step.name = `slide-ladder-step-${i+1}`;
+        slideStructure.add(step);
+    }
+    
+    // Create a platform at the top of the slide
+    const platformGeometry = new THREE.BoxGeometry(2.5, 0.3, 2);
+    const platform = new THREE.Mesh(platformGeometry, slideMaterial);
+    platform.position.set(-3.5, 4, 0);
+    platform.castShadow = true;
+    platform.name = "slide-platform";
+    slideStructure.add(platform);
+    
+    // Apply rotation to the entire slide structure
+    slideStructure.rotation.y = Math.PI / 2;
+    
+    // Position the entire slide structure in the scene
+    slideStructure.position.set(10, 0, 0);
+    scene.add(slideStructure);
+    
+    // Store reference to the slide for later access
     playgroundObjects.slide = {
-        mesh: slide,
-        group: slideGroup,
+        mesh: slideSurface,
+        group: slideStructure,
         type: 'slide',
         position: { x: 10, y: 3, z: 0 }
     };
     
-    debugLog("Slide created");
+    debugLog("Slide created successfully");
 }
 
 function createSeesaw() {
