@@ -382,6 +382,360 @@ function updateBirds() {
     });
 }
 
+// Create fireflies for magical atmosphere
+function createFireflies() {
+    const fireflyCount = 30;
+    fireflies = [];
+    
+    for (let i = 0; i < fireflyCount; i++) {
+        const geometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xFFFF88,
+            transparent: true,
+            opacity: 0.8
+        });
+        const firefly = new THREE.Mesh(geometry, material);
+        
+        // Random position around playground
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 15 + Math.random() * 15;
+        const height = 1 + Math.random() * 4;
+        
+        firefly.position.set(
+            Math.cos(angle) * radius,
+            height,
+            Math.sin(angle) * radius
+        );
+        
+        // Movement parameters
+        firefly.userData = {
+            baseX: firefly.position.x,
+            baseY: firefly.position.y,
+            baseZ: firefly.position.z,
+            speed: 0.002 + Math.random() * 0.003,
+            phase: Math.random() * Math.PI * 2,
+            range: 2 + Math.random() * 3,
+            glowPhase: Math.random() * Math.PI * 2,
+            glowSpeed: 0.05 + Math.random() * 0.05
+        };
+        
+        fireflies.push(firefly);
+        scene.add(firefly);
+        
+        // Add point light for each firefly
+        const light = new THREE.PointLight(0xFFFF88, 0.5, 5);
+        light.position.copy(firefly.position);
+        firefly.userData.light = light;
+        scene.add(light);
+    }
+    debugLog("Fireflies created");
+}
+
+// Update fireflies animation
+function updateFireflies() {
+    fireflies.forEach(firefly => {
+        if (firefly && firefly.userData) {
+            const data = firefly.userData;
+            
+            // Floating movement
+            data.phase += data.speed;
+            firefly.position.x = data.baseX + Math.cos(data.phase) * data.range;
+            firefly.position.y = data.baseY + Math.sin(data.phase * 2) * 1;
+            firefly.position.z = data.baseZ + Math.sin(data.phase) * data.range;
+            
+            // Glowing effect
+            data.glowPhase += data.glowSpeed;
+            const glow = (Math.sin(data.glowPhase) + 1) / 2;
+            firefly.material.opacity = 0.4 + glow * 0.6;
+            
+            // Update point light position and intensity
+            if (data.light) {
+                data.light.position.copy(firefly.position);
+                data.light.intensity = 0.3 + glow * 0.4;
+            }
+        }
+    });
+}
+
+// Create magic sparkles around interactive objects
+function createMagicParticles() {
+    const sparkleGeometry = new THREE.BufferGeometry();
+    const sparkleCount = 200;
+    const positions = new Float32Array(sparkleCount * 3);
+    const colors = new Float32Array(sparkleCount * 3);
+    const sizes = new Float32Array(sparkleCount);
+    
+    for (let i = 0; i < sparkleCount; i++) {
+        // Random positions in a sphere around origin
+        const radius = 30;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI;
+        
+        positions[i * 3] = Math.sin(phi) * Math.cos(theta) * radius;
+        positions[i * 3 + 1] = 2 + Math.random() * 6;
+        positions[i * 3 + 2] = Math.sin(phi) * Math.sin(theta) * radius;
+        
+        // Random colors (cyan, purple, pink, gold)
+        const colorChoices = [
+            [0.5, 0.9, 1.0], // Cyan
+            [0.8, 0.3, 1.0], // Purple
+            [1.0, 0.4, 0.8], // Pink
+            [1.0, 0.9, 0.3]  // Gold
+        ];
+        const color = colorChoices[Math.floor(Math.random() * colorChoices.length)];
+        colors[i * 3] = color[0];
+        colors[i * 3 + 1] = color[1];
+        colors[i * 3 + 2] = color[2];
+        
+        sizes[i] = Math.random() * 2 + 1;
+    }
+    
+    sparkleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    sparkleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    sparkleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    
+    const sparkleMaterial = new THREE.PointsMaterial({
+        size: 0.3,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.7,
+        blending: THREE.AdditiveBlending,
+        sizeAttenuation: true
+    });
+    
+    const sparkles = new THREE.Points(sparkleGeometry, sparkleMaterial);
+    sparkles.userData = { rotationSpeed: 0.001 };
+    magicParticles.push(sparkles);
+    scene.add(sparkles);
+    
+    debugLog("Magic particles created");
+}
+
+// Update magic particles
+function updateMagicParticles() {
+    magicParticles.forEach(particles => {
+        if (particles && particles.userData) {
+            particles.rotation.y += particles.userData.rotationSpeed;
+            
+            // Slowly move particles up and down
+            const positions = particles.geometry.attributes.position.array;
+            for (let i = 0; i < positions.length; i += 3) {
+                positions[i + 1] += Math.sin(Date.now() * 0.001 + i) * 0.01;
+                if (positions[i + 1] > 8) positions[i + 1] = 2;
+                if (positions[i + 1] < 2) positions[i + 1] = 8;
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
+        }
+    });
+}
+
+// Create dust particles for atmosphere
+function createDustParticles() {
+    const dustGeometry = new THREE.BufferGeometry();
+    const dustCount = 500;
+    const positions = new Float32Array(dustCount * 3);
+    
+    for (let i = 0; i < dustCount; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 80;
+        positions[i * 3 + 1] = Math.random() * 15;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 80;
+    }
+    
+    dustGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    
+    const dustMaterial = new THREE.PointsMaterial({
+        size: 0.1,
+        color: 0xFFFFFF,
+        transparent: true,
+        opacity: 0.3,
+        sizeAttenuation: true
+    });
+    
+    dustParticles = new THREE.Points(dustGeometry, dustMaterial);
+    scene.add(dustParticles);
+    
+    debugLog("Dust particles created");
+}
+
+// Update dust particles
+function updateDustParticles() {
+    if (dustParticles) {
+        const positions = dustParticles.geometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+            // Slow drift
+            positions[i] += Math.sin(Date.now() * 0.0001 + i) * 0.01;
+            positions[i + 1] += 0.01;
+            positions[i + 2] += Math.cos(Date.now() * 0.0001 + i) * 0.01;
+            
+            // Wrap around
+            if (positions[i + 1] > 15) positions[i + 1] = 0;
+        }
+        dustParticles.geometry.attributes.position.needsUpdate = true;
+    }
+}
+
+// Create grass field with individual blades
+function createGrassField() {
+    const grassGroup = new THREE.Group();
+    const grassCount = 2000;
+    
+    const grassGeometry = new THREE.ConeGeometry(0.05, 0.3, 3);
+    const grassMaterial = new THREE.MeshLambertMaterial({
+        color: 0x2d5016,
+        flatShading: true
+    });
+    
+    for (let i = 0; i < grassCount; i++) {
+        const blade = new THREE.Mesh(grassGeometry, grassMaterial);
+        
+        // Random position within ground bounds
+        const x = (Math.random() - 0.5) * 90;
+        const z = (Math.random() - 0.5) * 90;
+        
+        blade.position.set(x, 0.15, z);
+        blade.rotation.z = (Math.random() - 0.5) * 0.2;
+        blade.rotation.y = Math.random() * Math.PI * 2;
+        blade.scale.y = 0.8 + Math.random() * 0.4;
+        
+        blade.userData = {
+            baseRotationZ: blade.rotation.z,
+            swaySpeed: 0.002 + Math.random() * 0.002,
+            swayPhase: Math.random() * Math.PI * 2
+        };
+        
+        grassGroup.add(blade);
+    }
+    
+    grassField = grassGroup;
+    scene.add(grassGroup);
+    debugLog("Grass field created");
+}
+
+// Update grass swaying animation
+function updateGrass() {
+    if (grassField) {
+        grassField.children.forEach(blade => {
+            if (blade.userData) {
+                blade.userData.swayPhase += blade.userData.swaySpeed;
+                blade.rotation.z = blade.userData.baseRotationZ + Math.sin(blade.userData.swayPhase) * 0.1;
+            }
+        });
+    }
+}
+
+// Add atmospheric point lights around the scene
+function createAtmosphericLights() {
+    const lightColors = [0xFF6B6B, 0x4ECDC4, 0xFFE66D, 0x95E1D3];
+    const lightPositions = [
+        { x: 15, y: 3, z: 15 },
+        { x: -15, y: 3, z: 15 },
+        { x: 15, y: 3, z: -15 },
+        { x: -15, y: 3, z: -15 }
+    ];
+    
+    lightPositions.forEach((pos, i) => {
+        const light = new THREE.PointLight(lightColors[i], 0.5, 20);
+        light.position.set(pos.x, pos.y, pos.z);
+        light.userData = {
+            baseIntensity: 0.5,
+            pulseSpeed: 0.01 + Math.random() * 0.01,
+            pulsePhase: Math.random() * Math.PI * 2
+        };
+        pointLights.push(light);
+        scene.add(light);
+    });
+    
+    debugLog("Atmospheric lights created");
+}
+
+// Update atmospheric lights
+function updateAtmosphericLights() {
+    pointLights.forEach(light => {
+        if (light.userData) {
+            light.userData.pulsePhase += light.userData.pulseSpeed;
+            const pulse = (Math.sin(light.userData.pulsePhase) + 1) / 2;
+            light.intensity = light.userData.baseIntensity * (0.7 + pulse * 0.6);
+        }
+    });
+}
+
+// Setup post-processing effects
+function setupPostProcessing() {
+    if (!THREE.EffectComposer || !THREE.RenderPass || !THREE.UnrealBloomPass) {
+        console.warn("Post-processing libraries not available");
+        return;
+    }
+    
+    try {
+        composer = new THREE.EffectComposer(renderer);
+        
+        // Render pass
+        const renderPass = new THREE.RenderPass(scene, camera);
+        composer.addPass(renderPass);
+        
+        // Bloom pass for glowing effects
+        bloomPass = new THREE.UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            1.5,  // strength
+            0.4,  // radius
+            0.85  // threshold
+        );
+        composer.addPass(bloomPass);
+        
+        debugLog("Post-processing setup complete");
+    } catch (e) {
+        console.warn("Could not setup post-processing:", e);
+        composer = null;
+    }
+}
+
+// Cinematic camera path
+function startCinematicMode() {
+    if (cinematicMode) return;
+    
+    cinematicMode = true;
+    cinematicProgress = 0;
+    
+    // Define a circular path around the playground
+    cinematicPath = [];
+    const points = 100;
+    const radius = 35;
+    for (let i = 0; i < points; i++) {
+        const angle = (i / points) * Math.PI * 2;
+        cinematicPath.push({
+            position: {
+                x: Math.cos(angle) * radius,
+                y: 10 + Math.sin(angle * 3) * 3,
+                z: Math.sin(angle) * radius
+            },
+            lookAt: { x: 0, y: 2, z: 0 }
+        });
+    }
+    
+    debugLog("Cinematic mode started");
+}
+
+function stopCinematicMode() {
+    cinematicMode = false;
+    resetCamera();
+    debugLog("Cinematic mode stopped");
+}
+
+function updateCinematicCamera() {
+    if (!cinematicMode || cinematicPath.length === 0) return;
+    
+    cinematicProgress += 0.001;
+    if (cinematicProgress >= 1) cinematicProgress = 0;
+    
+    const index = Math.floor(cinematicProgress * cinematicPath.length);
+    const point = cinematicPath[index];
+    
+    if (camera && point) {
+        camera.position.set(point.position.x, point.position.y, point.position.z);
+        camera.lookAt(point.lookAt.x, point.lookAt.y, point.lookAt.z);
+    }
+}
+
 // Create gate with opening for entry
 function createGate() {
     const gateGroup = new THREE.Group();
@@ -761,9 +1115,46 @@ function createWeatherMenu() {
 function createGround() {
     debugLog("Creating ground...");
     
-    // Visual ground - 2x bigger (100x100)
-    const groundGeometry = new THREE.PlaneGeometry(300, 300);
-    const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x90EE90 });
+    // Visual ground - 2x bigger (100x100) with enhanced material
+    const groundGeometry = new THREE.PlaneGeometry(300, 300, 50, 50);
+    
+    // Add subtle height variation for terrain
+    const positions = groundGeometry.attributes.position.array;
+    for (let i = 0; i < positions.length; i += 3) {
+        positions[i + 2] = Math.random() * 0.3; // Small random height variation
+    }
+    groundGeometry.attributes.position.needsUpdate = true;
+    groundGeometry.computeVertexNormals();
+    
+    // Create a canvas for ground texture
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    
+    // Base grass color
+    ctx.fillStyle = '#5a8f3a';
+    ctx.fillRect(0, 0, 512, 512);
+    
+    // Add grass texture variation
+    for (let i = 0; i < 5000; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const shade = Math.floor(Math.random() * 40) - 20;
+        const color = 90 + shade;
+        ctx.fillStyle = `rgb(${color * 0.6}, ${color + 60}, ${color * 0.4})`;
+        ctx.fillRect(x, y, 2, 2);
+    }
+    
+    const groundTexture = new THREE.CanvasTexture(canvas);
+    groundTexture.wrapS = THREE.RepeatWrapping;
+    groundTexture.wrapT = THREE.RepeatWrapping;
+    groundTexture.repeat.set(20, 20);
+    
+    const groundMaterial = new THREE.MeshLambertMaterial({ 
+        map: groundTexture,
+        color: 0xffffff
+    });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
@@ -1658,10 +2049,39 @@ function createFountain(position) {
     fountainGroup.name = "fountain-group";
     
     const stoneMaterial = new THREE.MeshLambertMaterial({ color: 0xC0C0C0 });
-    const waterMaterial = new THREE.MeshLambertMaterial({ 
-        color: 0x4A90E2,
+    
+    // Create animated water material with shader
+    const waterMaterial = new THREE.ShaderMaterial({
         transparent: true,
-        opacity: 0.7
+        uniforms: {
+            time: { value: 0 },
+            color1: { value: new THREE.Color(0x4A90E2) },
+            color2: { value: new THREE.Color(0x87CEEB) }
+        },
+        vertexShader: `
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            void main() {
+                vUv = uv;
+                vPosition = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform float time;
+            uniform vec3 color1;
+            uniform vec3 color2;
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            
+            void main() {
+                vec2 uv = vUv;
+                float wave = sin(uv.x * 10.0 + time) * sin(uv.y * 10.0 + time) * 0.5 + 0.5;
+                vec3 color = mix(color1, color2, wave);
+                float alpha = 0.7 + wave * 0.2;
+                gl_FragColor = vec4(color, alpha);
+            }
+        `
     });
     
     // Base
@@ -1692,10 +2112,156 @@ function createFountain(position) {
     water.receiveShadow = true;
     fountainGroup.add(water);
     
+    // Add water droplets
+    const dropletGeometry = new THREE.BufferGeometry();
+    const dropletCount = 50;
+    const dropletPositions = new Float32Array(dropletCount * 3);
+    const dropletVelocities = [];
+    
+    for (let i = 0; i < dropletCount; i++) {
+        dropletPositions[i * 3] = (Math.random() - 0.5) * 0.3;
+        dropletPositions[i * 3 + 1] = 1.3 + Math.random();
+        dropletPositions[i * 3 + 2] = (Math.random() - 0.5) * 0.3;
+        
+        dropletVelocities.push({
+            x: (Math.random() - 0.5) * 0.02,
+            y: -0.03 - Math.random() * 0.02,
+            z: (Math.random() - 0.5) * 0.02
+        });
+    }
+    
+    dropletGeometry.setAttribute('position', new THREE.BufferAttribute(dropletPositions, 3));
+    
+    const dropletMaterial = new THREE.PointsMaterial({
+        color: 0x87CEEB,
+        size: 0.08,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending
+    });
+    
+    const droplets = new THREE.Points(dropletGeometry, dropletMaterial);
+    droplets.userData.velocities = dropletVelocities;
+    fountainGroup.add(droplets);
+    
+    // Store references for animation
+    fountainGroup.userData = {
+        water: water,
+        droplets: droplets
+    };
+    
     fountainGroup.position.set(position.x, position.y, position.z);
     scene.add(fountainGroup);
     
     return fountainGroup;
+}
+
+// Initialize ambient sounds (procedural)
+function initAmbientSounds() {
+    try {
+        // Create audio context
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Create ambient wind sound using pink noise
+        const bufferSize = audioContext.sampleRate * 2;
+        const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        
+        // Generate pink noise
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+        for (let i = 0; i < bufferSize; i++) {
+            const white = Math.random() * 2 - 1;
+            b0 = 0.99886 * b0 + white * 0.0555179;
+            b1 = 0.99332 * b1 + white * 0.0750759;
+            b2 = 0.96900 * b2 + white * 0.1538520;
+            b3 = 0.86650 * b3 + white * 0.3104856;
+            b4 = 0.55000 * b4 + white * 0.5329522;
+            b5 = -0.7616 * b5 - white * 0.0168980;
+            data[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.05;
+            b6 = white * 0.115926;
+        }
+        
+        // Create buffer source
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+        
+        // Create filter for wind effect
+        const filter = audioContext.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 800;
+        
+        // Create gain node for volume control
+        const gainNode = audioContext.createGain();
+        gainNode.gain.value = 0.1; // Low volume for ambient
+        
+        // Connect nodes
+        source.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Store reference
+        ambientSound = { source, gainNode, filter };
+        
+        debugLog("Ambient sounds initialized");
+    } catch (e) {
+        console.warn("Could not initialize audio:", e);
+    }
+}
+
+// Start ambient sounds
+function startAmbientSounds() {
+    if (ambientSound && ambientSound.source && audioContext) {
+        try {
+            ambientSound.source.start(0);
+            debugLog("Ambient sounds started");
+        } catch (e) {
+            console.warn("Could not start ambient sounds:", e);
+        }
+    }
+}
+
+// Toggle ambient sounds
+function toggleAmbientSounds() {
+    if (ambientSound && ambientSound.gainNode) {
+        const currentVolume = ambientSound.gainNode.gain.value;
+        ambientSound.gainNode.gain.value = currentVolume > 0 ? 0 : 0.1;
+    }
+}
+
+// Update fountain animations
+function updateFountains() {
+    scene.traverse((object) => {
+        if (object.name === 'fountain-group' && object.userData.water) {
+            // Update water shader time
+            const waterMesh = object.userData.water;
+            if (waterMesh.material.uniforms && waterMesh.material.uniforms.time) {
+                waterMesh.material.uniforms.time.value += 0.01;
+            }
+            
+            // Update droplets
+            const droplets = object.userData.droplets;
+            if (droplets && droplets.geometry && droplets.userData.velocities) {
+                const positions = droplets.geometry.attributes.position.array;
+                const velocities = droplets.userData.velocities;
+                
+                for (let i = 0; i < positions.length; i += 3) {
+                    positions[i] += velocities[i / 3].x;
+                    positions[i + 1] += velocities[i / 3].y;
+                    positions[i + 2] += velocities[i / 3].z;
+                    
+                    // Reset droplet if it falls too low
+                    if (positions[i + 1] < 0.5) {
+                        positions[i] = (Math.random() - 0.5) * 0.3;
+                        positions[i + 1] = 1.3 + Math.random();
+                        positions[i + 2] = (Math.random() - 0.5) * 0.3;
+                    }
+                }
+                
+                droplets.geometry.attributes.position.needsUpdate = true;
+            }
+        }
+    });
 }
 
 function createFountains() {
@@ -2101,6 +2667,20 @@ let touchStartTime = 0;
 let virtualJoystick = null;
 let joystickActive = false;
 
+// Post-processing and effects
+let composer = null;
+let bloomPass = null;
+let fireflies = [];
+let magicParticles = [];
+let dustParticles = null;
+let grassField = null;
+let pointLights = [];
+let audioContext = null;
+let ambientSound = null;
+let cinematicMode = false;
+let cinematicPath = [];
+let cinematicProgress = 0;
+
 // Setup touch controls
 function setupTouchControls() {
     // Touch start
@@ -2383,6 +2963,11 @@ function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    // Update composer size if it exists
+    if (composer) {
+        composer.setSize(window.innerWidth, window.innerHeight);
+    }
 }
 
 function updateCamera() {
@@ -2515,6 +3100,15 @@ function animate() {
         // Update gate
         updateGate();
         
+        // Update new effects
+        updateFireflies();
+        updateMagicParticles();
+        updateDustParticles();
+        updateGrass();
+        updateAtmosphericLights();
+        updateCinematicCamera();
+        updateFountains();
+        
         // Update physics
         if (physicsEnabled && world) {
             try {
@@ -2554,7 +3148,12 @@ function animate() {
         }
         
         if (renderer && scene && camera) {
-            renderer.render(scene, camera);
+            // Use post-processing composer if available, otherwise use regular renderer
+            if (composer) {
+                composer.render();
+            } else {
+                renderer.render(scene, camera);
+            }
         }
     } catch (error) {
         console.error("Animation error:", error);
@@ -2644,6 +3243,109 @@ function createStreetViewButton() {
     document.body.appendChild(btn);
 }
 
+function createCinematicButton() {
+    const existingBtn = document.getElementById('cinematic-btn');
+    if (existingBtn) {
+        existingBtn.remove();
+    }
+    
+    const btn = document.createElement('button');
+    btn.id = 'cinematic-btn';
+    btn.textContent = '🎬 Cinematic Tour';
+    btn.style.position = 'fixed';
+    btn.style.bottom = '140px';
+    btn.style.left = '20px';
+    btn.style.padding = '10px 20px';
+    btn.style.borderRadius = '8px';
+    btn.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+    btn.style.border = 'none';
+    btn.style.fontSize = '14px';
+    btn.style.fontWeight = '500';
+    btn.style.cursor = 'pointer';
+    btn.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    btn.style.zIndex = '100';
+    btn.style.transition = 'all 0.3s ease';
+    
+    btn.addEventListener('mouseenter', () => {
+        btn.style.backgroundColor = 'rgba(255, 255, 255, 1)';
+        btn.style.transform = 'scale(1.05)';
+    });
+    
+    btn.addEventListener('mouseleave', () => {
+        btn.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        btn.style.transform = 'scale(1)';
+    });
+    
+    btn.addEventListener('click', () => {
+        if (cinematicMode) {
+            stopCinematicMode();
+            btn.textContent = '🎬 Cinematic Tour';
+            btn.classList.remove('active');
+        } else {
+            startCinematicMode();
+            btn.textContent = '⏹️ Stop Tour';
+            btn.classList.add('active');
+        }
+    });
+    
+    document.body.appendChild(btn);
+}
+
+function createSoundButton() {
+    const existingBtn = document.getElementById('sound-btn');
+    if (existingBtn) {
+        existingBtn.remove();
+    }
+    
+    const btn = document.createElement('button');
+    btn.id = 'sound-btn';
+    btn.textContent = '🔊 Sound ON';
+    btn.style.position = 'fixed';
+    btn.style.bottom = '200px';
+    btn.style.left = '20px';
+    btn.style.padding = '10px 20px';
+    btn.style.borderRadius = '8px';
+    btn.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+    btn.style.border = 'none';
+    btn.style.fontSize = '14px';
+    btn.style.fontWeight = '500';
+    btn.style.cursor = 'pointer';
+    btn.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+    btn.style.zIndex = '100';
+    btn.style.transition = 'all 0.3s ease';
+    
+    btn.addEventListener('mouseenter', () => {
+        btn.style.backgroundColor = 'rgba(255, 255, 255, 1)';
+        btn.style.transform = 'scale(1.05)';
+    });
+    
+    btn.addEventListener('mouseleave', () => {
+        btn.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        btn.style.transform = 'scale(1)';
+    });
+    
+    btn.addEventListener('click', () => {
+        // Start sounds on first click
+        if (ambientSound && ambientSound.source && audioContext && audioContext.state === 'suspended') {
+            audioContext.resume().then(() => {
+                startAmbientSounds();
+            });
+        }
+        
+        toggleAmbientSounds();
+        
+        if (ambientSound && ambientSound.gainNode && ambientSound.gainNode.gain.value > 0) {
+            btn.textContent = '🔊 Sound ON';
+            btn.classList.add('active');
+        } else {
+            btn.textContent = '🔇 Sound OFF';
+            btn.classList.remove('active');
+        }
+    });
+    
+    document.body.appendChild(btn);
+}
+
 function createNavigationHints() {
     // Remove existing navigation hints if any
     const existingHints = document.getElementById('navigation-hints');
@@ -2691,7 +3393,7 @@ function init() {
         
         // Scene setup
         scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0x87CEEB, 10, 500); // Increased far distance for visibility
+        scene.fog = new THREE.Fog(0x87CEEB, 10, 200); // Increased far distance for visibility
         
         // Camera setup
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -2707,6 +3409,8 @@ function init() {
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
         
         const container = document.getElementById('canvas-container');
         if (container) {
@@ -2714,6 +3418,9 @@ function init() {
         }
         
         debugLog("Renderer created");
+        
+        // Setup post-processing effects
+        setupPostProcessing();
         
         // Physics world
         if (typeof CANNON !== 'undefined') {
@@ -2738,18 +3445,24 @@ function init() {
         mouse = new THREE.Vector2();
         
         // Lighting - store references for weather system
-        ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        // Hemisphere light for natural ambient lighting
+        const hemiLight = new THREE.HemisphereLight(0x87CEEB, 0x362503, 0.4);
+        scene.add(hemiLight);
+        
+        ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         scene.add(ambientLight);
         
-        directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
         directionalLight.position.set(20, 30, 10);
         directionalLight.castShadow = true;
-        directionalLight.shadow.camera.left = -30;
-        directionalLight.shadow.camera.right = 30;
-        directionalLight.shadow.camera.top = 30;
-        directionalLight.shadow.camera.bottom = -30;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.left = -50;
+        directionalLight.shadow.camera.right = 50;
+        directionalLight.shadow.camera.top = 50;
+        directionalLight.shadow.camera.bottom = -50;
+        directionalLight.shadow.mapSize.width = 4096;
+        directionalLight.shadow.mapSize.height = 4096;
+        directionalLight.shadow.bias = -0.0001;
+        directionalLight.shadow.radius = 2;
         scene.add(directionalLight);
         
         debugLog("Lighting added");
@@ -2768,6 +3481,13 @@ function init() {
         // Create clouds and birds
         createClouds();
         createBirds();
+        
+        // Create magical and atmospheric effects
+        createFireflies();
+        createMagicParticles();
+        createDustParticles();
+        createGrassField();
+        createAtmosphericLights();
         
         setWeather('day');
         
@@ -2813,7 +3533,12 @@ function init() {
         // Create UI elements
         createHomeButton();
         createStreetViewButton();
+        createCinematicButton();
+        createSoundButton();
         createNavigationHints();
+        
+        // Initialize ambient sounds (requires user interaction)
+        initAmbientSounds();
         setupStreetViewControls();
         setupTouchControls();
         createVirtualJoystick();
