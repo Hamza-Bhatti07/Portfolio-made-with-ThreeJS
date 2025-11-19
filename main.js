@@ -62,6 +62,19 @@ let lightningFlash = null;
 let lightningInterval = null;
 let weatherTransitionTime = 0;
 
+// Day cycle and celestial objects
+let sun = null;
+let moon = null;
+let stars = null;
+let clouds = [];
+let birds = [];
+let dayCycleEnabled = true;
+let dayCycleTime = 0; // 0-1, where 0 is midnight, 0.5 is noon
+let dayCycleSpeed = 0.0001; // Speed of day cycle
+let manualWeatherOverride = false; // Flag to disable auto weather when manually set
+let gate = null;
+let gateOpen = false;
+
 // Camera control variables
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
@@ -150,6 +163,325 @@ function createLightningFlash() {
     document.body.appendChild(lightningFlash);
 }
 
+// Create sun
+function createSun() {
+    const sunGeometry = new THREE.SphereGeometry(5, 32, 32);
+    const sunMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xFFD700,
+        emissive: 0xFFD700,
+        emissiveIntensity: 1
+    });
+    sun = new THREE.Mesh(sunGeometry, sunMaterial);
+    sun.position.set(30, 50, 30);
+    sun.visible = false;
+    scene.add(sun);
+    debugLog("Sun created");
+}
+
+// Create moon
+function createMoon() {
+    const moonGeometry = new THREE.SphereGeometry(4, 32, 32);
+    const moonMaterial = new THREE.MeshBasicMaterial({ 
+        color: 0xE6E6FA,
+        emissive: 0xE6E6FA,
+        emissiveIntensity: 0.5
+    });
+    moon = new THREE.Mesh(moonGeometry, moonMaterial);
+    moon.position.set(-30, 40, -30);
+    moon.visible = false;
+    scene.add(moon);
+    debugLog("Moon created");
+}
+
+// Create stars
+function createStars() {
+    const starsGeometry = new THREE.BufferGeometry();
+    const starsCount = 2000;
+    const positions = new Float32Array(starsCount * 3);
+    
+    for (let i = 0; i < starsCount * 3; i += 3) {
+        // Random position on a sphere
+        const radius = 400 + Math.random() * 100;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(Math.random() * 2 - 1);
+        
+        positions[i] = radius * Math.sin(phi) * Math.cos(theta);
+        positions[i + 1] = radius * Math.sin(phi) * Math.sin(theta);
+        positions[i + 2] = radius * Math.cos(phi);
+    }
+    
+    starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    
+    const starsMaterial = new THREE.PointsMaterial({
+        color: 0xFFFFFF,
+        size: 0.5,
+        transparent: true,
+        opacity: 0.8
+    });
+    
+    stars = new THREE.Points(starsGeometry, starsMaterial);
+    stars.visible = false;
+    scene.add(stars);
+    debugLog("Stars created");
+}
+
+// Create clouds
+function createClouds() {
+    const cloudCount = 15;
+    clouds = [];
+    
+    for (let i = 0; i < cloudCount; i++) {
+        const cloudGroup = new THREE.Group();
+        
+        // Create cloud using multiple spheres
+        const cloudMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0xFFFFFF,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        const cloudParts = 5;
+        for (let j = 0; j < cloudParts; j++) {
+            const size = 3 + Math.random() * 4;
+            const cloudGeometry = new THREE.SphereGeometry(size, 16, 16);
+            const cloudPart = new THREE.Mesh(cloudGeometry, cloudMaterial);
+            cloudPart.position.set(
+                (Math.random() - 0.5) * 8,
+                (Math.random() - 0.5) * 3,
+                (Math.random() - 0.5) * 8
+            );
+            cloudGroup.add(cloudPart);
+        }
+        
+        // Random position in sky
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 50 + Math.random() * 30; // Reduced from 100-150 to 50-80
+        const height = 30 + Math.random() * 20; // Reduced from 40-70 to 30-50
+        
+        cloudGroup.position.set(
+            Math.cos(angle) * radius,
+            height,
+            Math.sin(angle) * radius
+        );
+        
+        // Random speed and direction
+        cloudGroup.userData = {
+            speed: 0.01 + Math.random() * 0.02,
+            direction: angle + (Math.random() - 0.5) * 0.5
+        };
+        
+        clouds.push(cloudGroup);
+        scene.add(cloudGroup);
+    }
+    debugLog("Clouds created");
+}
+
+// Update clouds animation
+function updateClouds() {
+    clouds.forEach(cloud => {
+        if (cloud && cloud.userData) {
+            // Move cloud
+            cloud.position.x += Math.cos(cloud.userData.direction) * cloud.userData.speed;
+            cloud.position.z += Math.sin(cloud.userData.direction) * cloud.userData.speed;
+            
+            // Wrap around when out of bounds
+            const maxDistance = 100; // Reduced from 200 to keep clouds visible
+            if (Math.abs(cloud.position.x) > maxDistance) {
+                cloud.position.x = -Math.sign(cloud.position.x) * maxDistance;
+            }
+            if (Math.abs(cloud.position.z) > maxDistance) {
+                cloud.position.z = -Math.sign(cloud.position.z) * maxDistance;
+            }
+        }
+    });
+}
+
+// Create birds
+function createBirds() {
+    const birdCount = 8;
+    birds = [];
+    
+    for (let i = 0; i < birdCount; i++) {
+        const birdGroup = new THREE.Group();
+        
+        // Simple bird shape using cones
+        const birdMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+        
+        // Body
+        const bodyGeometry = new THREE.ConeGeometry(0.3, 1, 8);
+        const body = new THREE.Mesh(bodyGeometry, birdMaterial);
+        body.rotation.x = Math.PI / 2;
+        birdGroup.add(body);
+        
+        // Wings
+        const wingGeometry = new THREE.ConeGeometry(0.2, 1.5, 8);
+        const leftWing = new THREE.Mesh(wingGeometry, birdMaterial);
+        leftWing.position.set(-0.3, 0, 0);
+        leftWing.rotation.z = Math.PI / 4;
+        birdGroup.add(leftWing);
+        
+        const rightWing = new THREE.Mesh(wingGeometry, birdMaterial);
+        rightWing.position.set(0.3, 0, 0);
+        rightWing.rotation.z = -Math.PI / 4;
+        birdGroup.add(rightWing);
+        
+        // Random starting position
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 40 + Math.random() * 30; // Reduced from 80-120 to 40-70
+        const height = 15 + Math.random() * 15; // Reduced from 20-40 to 15-30
+        
+        birdGroup.position.set(
+            Math.cos(angle) * radius,
+            height,
+            Math.sin(angle) * radius
+        );
+        
+        // Random flight path
+        birdGroup.userData = {
+            speed: 0.15 + Math.random() * 0.1,
+            direction: angle,
+            wingFlapSpeed: 0.2 + Math.random() * 0.1,
+            wingFlapPhase: Math.random() * Math.PI * 2
+        };
+        
+        birds.push(birdGroup);
+        scene.add(birdGroup);
+    }
+    debugLog("Birds created");
+}
+
+// Update birds animation
+function updateBirds() {
+    birds.forEach((bird, index) => {
+        if (bird && bird.userData) {
+            // Move bird
+            bird.position.x += Math.cos(bird.userData.direction) * bird.userData.speed;
+            bird.position.z += Math.sin(bird.userData.direction) * bird.userData.speed;
+            
+            // Wing flapping animation
+            bird.userData.wingFlapPhase += bird.userData.wingFlapSpeed;
+            if (bird.children.length >= 3) {
+                bird.children[1].rotation.z = Math.PI / 4 + Math.sin(bird.userData.wingFlapPhase) * 0.3;
+                bird.children[2].rotation.z = -Math.PI / 4 - Math.sin(bird.userData.wingFlapPhase) * 0.3;
+            }
+            
+            // Wrap around when out of bounds
+            const maxDistance = 100; // Reduced from 200 to keep birds visible
+            if (Math.abs(bird.position.x) > maxDistance) {
+                bird.position.x = -Math.sign(bird.position.x) * maxDistance;
+            }
+            if (Math.abs(bird.position.z) > maxDistance) {
+                bird.position.z = -Math.sign(bird.position.z) * maxDistance;
+            }
+            
+            // Occasionally change direction
+            if (Math.random() < 0.01) {
+                bird.userData.direction += (Math.random() - 0.5) * 0.5;
+            }
+        }
+    });
+}
+
+// Create gate with opening for entry
+function createGate() {
+    const gateGroup = new THREE.Group();
+    gateGroup.name = "gate-group";
+    
+    // Gate posts
+    const postMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+    const postGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 8);
+    
+    const leftPost = new THREE.Mesh(postGeometry, postMaterial);
+    leftPost.position.set(-2, 3, 0);
+    leftPost.castShadow = true;
+    gateGroup.add(leftPost);
+    
+    const rightPost = new THREE.Mesh(postGeometry, postMaterial);
+    rightPost.position.set(2, 3, 0);
+    rightPost.castShadow = true;
+    gateGroup.add(rightPost);
+    
+    // Gate doors (two halves)
+    const doorMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+    const doorGeometry = new THREE.BoxGeometry(1.8, 5, 0.2);
+    
+    // Left door
+    const leftDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+    leftDoor.position.set(-1.1, 2.5, 0);
+    leftDoor.castShadow = true;
+    leftDoor.userData.isLeftDoor = true;
+    gateGroup.add(leftDoor);
+    
+    // Right door
+    const rightDoor = new THREE.Mesh(doorGeometry, doorMaterial);
+    rightDoor.position.set(1.1, 2.5, 0);
+    rightDoor.castShadow = true;
+    rightDoor.userData.isRightDoor = true;
+    gateGroup.add(rightDoor);
+    
+    // Top bar connecting posts
+    const topBarGeometry = new THREE.BoxGeometry(4.5, 0.2, 0.3);
+    const topBar = new THREE.Mesh(topBarGeometry, postMaterial);
+    topBar.position.set(0, 5.5, 0);
+    topBar.castShadow = true;
+    gateGroup.add(topBar);
+    
+    // Position gate at north side (opposite billboard at z: -15)
+    gateGroup.position.set(0, 0, 20);
+    gateGroup.rotation.y = Math.PI; // Face south (toward playground)
+    
+    gateGroup.userData = {
+        leftDoor: leftDoor,
+        rightDoor: rightDoor,
+        leftPost: leftPost,
+        rightPost: rightPost,
+        isOpen: false,
+        targetRotation: 0
+    };
+    
+    gate = gateGroup;
+    scene.add(gateGroup);
+    
+    // Make gate clickable
+    playgroundObjects.gate = {
+        mesh: topBar,
+        group: gateGroup,
+        type: 'gate',
+        position: { x: 0, y: 2.5, z: 20 }
+    };
+    
+    debugLog("Gate created");
+}
+
+// Toggle gate
+function toggleGate() {
+    if (!gate || !gate.userData) return;
+    
+    gateOpen = !gateOpen;
+    gate.userData.isOpen = gateOpen;
+    gate.userData.targetRotation = gateOpen ? Math.PI / 2 : 0;
+}
+
+// Update gate animation
+function updateGate() {
+    if (!gate || !gate.userData) return;
+    
+    const leftDoor = gate.userData.leftDoor;
+    const rightDoor = gate.userData.rightDoor;
+    
+    if (!leftDoor || !rightDoor) return;
+    
+    // Animate gate opening/closing
+    const targetRot = gate.userData.targetRotation;
+    const currentLeftRot = leftDoor.rotation.y;
+    const currentRightRot = rightDoor.rotation.y;
+    
+    // Smooth interpolation
+    const speed = 0.05;
+    leftDoor.rotation.y += (targetRot - currentLeftRot) * speed;
+    rightDoor.rotation.y += (-targetRot - currentRightRot) * speed;
+}
+
 function triggerLightning() {
     if (!lightningFlash || currentWeather !== 'stormy') return;
     
@@ -174,8 +506,16 @@ function triggerLightning() {
     }
 }
 
-function setWeather(weatherType) {
-    if (currentWeather === weatherType) return;
+function setWeather(weatherType, isManual = false) {
+    if (currentWeather === weatherType && !isManual) return;
+    
+    // If manually set, disable auto day cycle temporarily
+    if (isManual) {
+        manualWeatherOverride = true;
+        setTimeout(() => {
+            manualWeatherOverride = false;
+        }, 60000); // Re-enable auto after 60 seconds
+    }
     
     currentWeather = weatherType;
     weatherTransitionTime = 0;
@@ -231,6 +571,19 @@ function setWeather(weatherType) {
         directionalLight.position.set(light.position[0], light.position[1], light.position[2]);
     }
     
+    // Handle sun visibility (only in day and sunny)
+    if (sun) {
+        sun.visible = (weatherType === 'day' || weatherType === 'sunny');
+    }
+    
+    // Handle moon and stars visibility (only in night, rainy, stormy)
+    if (moon) {
+        moon.visible = (weatherType === 'night' || weatherType === 'rainy' || weatherType === 'stormy');
+    }
+    if (stars) {
+        stars.visible = (weatherType === 'night' || weatherType === 'rainy' || weatherType === 'stormy');
+    }
+    
     // Handle rain particles
     if (rainParticles) {
         if (weatherType === 'rainy' || weatherType === 'stormy') {
@@ -252,6 +605,100 @@ function setWeather(weatherType) {
                 triggerLightning();
             }
         }, 2000);
+    }
+}
+
+// Update day cycle
+function updateDayCycle() {
+    if (!dayCycleEnabled || manualWeatherOverride) return;
+    
+    // Increment day cycle time
+    dayCycleTime += dayCycleSpeed;
+    if (dayCycleTime >= 1) {
+        dayCycleTime = 0; // Reset to midnight
+    }
+    
+    // Determine time of day (0 = midnight, 0.25 = dawn, 0.5 = noon, 0.75 = dusk)
+    const timeOfDay = dayCycleTime;
+    
+    // Update sky color based on time
+    if (sky) {
+        let skyColor;
+        if (timeOfDay < 0.2 || timeOfDay > 0.8) {
+            // Night (0-0.2 and 0.8-1)
+            skyColor = 0x191970;
+            if (currentWeather !== 'night') {
+                setWeather('night', false);
+            }
+        } else if (timeOfDay < 0.25 || timeOfDay > 0.75) {
+            // Dawn/Dusk (0.2-0.25 and 0.75-0.8)
+            const t = timeOfDay < 0.25 ? (timeOfDay - 0.2) / 0.05 : (0.8 - timeOfDay) / 0.05;
+            const nightColor = new THREE.Color(0x191970);
+            const dawnColor = new THREE.Color(0xFF6347);
+            const lerpedColor = new THREE.Color();
+            lerpedColor.lerpColors(nightColor, dawnColor, t);
+            skyColor = lerpedColor.getHex();
+        } else {
+            // Day (0.25-0.75)
+            skyColor = 0x87CEEB;
+            if (currentWeather !== 'day' && currentWeather !== 'sunny') {
+                // Randomly choose between day and sunny
+                setWeather(Math.random() < 0.5 ? 'day' : 'sunny', false);
+            }
+        }
+        sky.material.color.setHex(skyColor);
+    }
+    
+    // Update sun position (arc across sky)
+    if (sun) {
+        const sunAngle = timeOfDay * Math.PI * 2 - Math.PI / 2; // Start at -90 degrees
+        const sunRadius = 60; // Reduced from 100 to 60
+        sun.position.x = Math.cos(sunAngle) * sunRadius;
+        sun.position.y = Math.sin(sunAngle) * sunRadius + 30; // Reduced base height from 50 to 30
+        sun.position.z = 30;
+        
+        // Hide sun below horizon
+        sun.visible = sun.position.y > 0 && (currentWeather === 'day' || currentWeather === 'sunny');
+    }
+    
+    // Update moon position (opposite of sun)
+    if (moon) {
+        const moonAngle = (timeOfDay + 0.5) * Math.PI * 2 - Math.PI / 2;
+        const moonRadius = 60; // Reduced from 100 to 60
+        moon.position.x = Math.cos(moonAngle) * moonRadius;
+        moon.position.y = Math.sin(moonAngle) * moonRadius + 30; // Reduced base height from 50 to 30
+        moon.position.z = -30;
+        
+        // Show moon when above horizon and in appropriate weather
+        moon.visible = moon.position.y > 0 && (currentWeather === 'night' || currentWeather === 'rainy' || currentWeather === 'stormy');
+    }
+    
+    // Update lighting based on time
+    if (ambientLight && directionalLight) {
+        if (timeOfDay < 0.2 || timeOfDay > 0.8) {
+            // Night
+            ambientLight.intensity = 0.2;
+            directionalLight.intensity = 0.3;
+            directionalLight.color.setHex(0x8B9DC3);
+        } else if (timeOfDay < 0.25 || timeOfDay > 0.75) {
+            // Dawn/Dusk
+            const t = timeOfDay < 0.25 ? (timeOfDay - 0.2) / 0.05 : (0.8 - timeOfDay) / 0.05;
+            ambientLight.intensity = 0.2 + (0.6 - 0.2) * t;
+            directionalLight.intensity = 0.3 + (0.8 - 0.3) * t;
+        } else {
+            // Day
+            ambientLight.intensity = 0.6;
+            directionalLight.intensity = 0.8;
+            directionalLight.color.setHex(0xFFFFFF);
+        }
+    }
+    
+    // Random weather changes during day
+    if (timeOfDay >= 0.25 && timeOfDay <= 0.75 && Math.random() < 0.0005) {
+        // 0.05% chance per frame to change weather
+        const weathers = ['day', 'sunny', 'rainy'];
+        const randomWeather = weathers[Math.floor(Math.random() * weathers.length)];
+        setWeather(randomWeather, false);
     }
 }
 
@@ -278,17 +725,36 @@ function createWeatherMenu() {
                 </button>
             `).join('')}
         </div>
+        <div class="weather-menu-title" style="margin-top: 10px;">Day-Night Cycle</div>
+        <button id="cycle-toggle-btn" class="weather-btn active" style="width: 100%;">
+            🔄 Auto Cycle: ON
+        </button>
     `;
     
     document.body.appendChild(weatherMenu);
     
-    // Add event listeners
-    const buttons = weatherMenu.querySelectorAll('.weather-btn');
+    // Add event listeners for weather buttons
+    const buttons = weatherMenu.querySelectorAll('.weather-btn[data-weather]');
     buttons.forEach(btn => {
         btn.addEventListener('click', () => {
-            setWeather(btn.dataset.weather);
+            setWeather(btn.dataset.weather, true); // Mark as manual override
         });
     });
+    
+    // Add event listener for cycle toggle button
+    const cycleToggleBtn = document.getElementById('cycle-toggle-btn');
+    if (cycleToggleBtn) {
+        cycleToggleBtn.addEventListener('click', () => {
+            dayCycleEnabled = !dayCycleEnabled;
+            if (dayCycleEnabled) {
+                cycleToggleBtn.textContent = '🔄 Auto Cycle: ON';
+                cycleToggleBtn.classList.add('active');
+            } else {
+                cycleToggleBtn.textContent = '⏸️ Auto Cycle: OFF';
+                cycleToggleBtn.classList.remove('active');
+            }
+        });
+    }
 }
 
 // Define all functions first
@@ -296,7 +762,7 @@ function createGround() {
     debugLog("Creating ground...");
     
     // Visual ground - 2x bigger (100x100)
-    const groundGeometry = new THREE.PlaneGeometry(100, 100);
+    const groundGeometry = new THREE.PlaneGeometry(300, 300);
     const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x90EE90 });
     const ground = new THREE.Mesh(groundGeometry, groundMaterial);
     ground.rotation.x = -Math.PI / 2;
@@ -538,8 +1004,10 @@ function createSlide() {
     // Apply rotation to the entire slide structure
     slideStructure.rotation.y = Math.PI / 2;
     
-    // Position the entire slide structure in the scene
-    slideStructure.position.set(10, 0, 0);
+    // Position the entire slide structure in the scene - 0 degrees (east)
+    const slideRadius = 12;
+    const slideAngle = 0; // 0 degrees
+    slideStructure.position.set(slideRadius * Math.cos(slideAngle), 0, slideRadius * Math.sin(slideAngle));
     scene.add(slideStructure);
     
     // Store reference to the slide for later access
@@ -547,7 +1015,7 @@ function createSlide() {
         mesh: slideSurface,
         group: slideStructure,
         type: 'slide',
-        position: { x: 10, y: 3, z: 0 }
+        position: { x: slideRadius * Math.cos(slideAngle), y: 3, z: slideRadius * Math.sin(slideAngle) }
     };
     
     debugLog("Slide created successfully");
@@ -593,14 +1061,17 @@ function createSeesaw() {
     rightSeat.name = "seesaw-right-seat";
     seesawGroup.add(rightSeat);
     
-    seesawGroup.position.set(0, 0, 10);
+    // Position seesaw at 45 degrees (northeast)
+    const seesawRadius = 12;
+    const seesawAngle = Math.PI / 4; // 45 degrees
+    seesawGroup.position.set(seesawRadius * Math.cos(seesawAngle), 0, seesawRadius * Math.sin(seesawAngle));
     scene.add(seesawGroup);
     
     playgroundObjects.seesaw = {
         mesh: plank,
         group: seesawGroup,
         type: 'seesaw',
-        position: { x: 0, y: 1, z: 10 }
+        position: { x: seesawRadius * Math.cos(seesawAngle), y: 1, z: seesawRadius * Math.sin(seesawAngle) }
     };
     
     // Physics for seesaw
@@ -609,7 +1080,7 @@ function createSeesaw() {
             const plankShape = new CANNON.Box(new CANNON.Vec3(3, 0.15, 0.5));
             const plankBody = new CANNON.Body({ mass: 5 });
             plankBody.addShape(plankShape);
-            plankBody.position.set(0, 1, 10);
+            plankBody.position.set(seesawRadius * Math.cos(seesawAngle), 1, seesawRadius * Math.sin(seesawAngle));
             world.add(plankBody);
             
             // Hinge constraint
@@ -676,14 +1147,17 @@ function createMerryGoRound() {
         merryGroup.add(horse);
     }
     
-    merryGroup.position.set(-10, 0, 0);
+    // Position merry-go-round at 90 degrees (north)
+    const merryRadius = 12;
+    const merryAngle = Math.PI / 2; // 90 degrees
+    merryGroup.position.set(merryRadius * Math.cos(merryAngle), 0, merryRadius * Math.sin(merryAngle));
     scene.add(merryGroup);
     
     playgroundObjects.merrygoround = {
         mesh: platform,
         group: merryGroup,
         type: 'merrygoround',
-        position: { x: -10, y: 0.65, z: 0 }
+        position: { x: merryRadius * Math.cos(merryAngle), y: 0.65, z: merryRadius * Math.sin(merryAngle) }
     };
     
     // Add rotation animation
@@ -707,25 +1181,27 @@ function createFence() {
     const postSpacing = 2;
     const numPostsPerSide = Math.floor(fenceSize / postSpacing);
     
-    // Helper function to create a rail between two posts
-    function createRail(startPos, endPos, height, rotation) {
+    // Helper function to create a rail between two posts - optimized to prevent flickering
+    function createRail(startPos, endPos, height, direction) {
         const distance = Math.sqrt(
             Math.pow(endPos.x - startPos.x, 2) + 
             Math.pow(endPos.z - startPos.z, 2)
         );
-        const railGeometry = new THREE.BoxGeometry(0.1, 0.1, distance);
+        // Use slightly smaller distance to prevent overlap with posts (0.15 radius * 2 = 0.3)
+        const railLength = distance - 0.3;
+        const railGeometry = new THREE.BoxGeometry(0.1, 0.1, railLength);
         const rail = new THREE.Mesh(railGeometry, railMaterial);
         
         const midX = (startPos.x + endPos.x) / 2;
         const midZ = (startPos.z + endPos.z) / 2;
-        rail.position.set(midX, height, midZ);
         
-        if (rotation !== undefined) {
-            rail.rotation.y = rotation;
-        } else {
-            // Calculate rotation based on positions
-            const angle = Math.atan2(endPos.z - startPos.z, endPos.x - startPos.x);
-            rail.rotation.y = angle;
+        rail.position.set(midX, height + 0.001, midZ);
+        
+        
+        if (direction === 'horizontal') {
+            rail.rotation.y = Math.PI / 2; 
+        } else if (direction === 'vertical') {
+            rail.rotation.y = 0; 
         }
         
         rail.castShadow = true;
@@ -736,6 +1212,7 @@ function createFence() {
     
     // Create all posts first
     // Front (south) and back (north) sides
+    const gateWidth = 5; // Gate opening width
     for (let i = 0; i <= numPostsPerSide; i++) {
         const x = -fenceSize / 2 + (i * postSpacing);
         
@@ -746,12 +1223,14 @@ function createFence() {
         fenceGroup.add(post1);
         posts.push({ x: x, z: -fenceSize / 2 });
         
-        // Back fence (north)
-        const post2 = new THREE.Mesh(postGeometry, postMaterial);
-        post2.position.set(x, 1, fenceSize / 2);
-        post2.castShadow = true;
-        fenceGroup.add(post2);
-        posts.push({ x: x, z: fenceSize / 2 });
+        // Back fence (north) - skip posts near gate (x = 0)
+        if (Math.abs(x) > gateWidth / 2) {
+            const post2 = new THREE.Mesh(postGeometry, postMaterial);
+            post2.position.set(x, 1, fenceSize / 2);
+            post2.castShadow = true;
+            fenceGroup.add(post2);
+            posts.push({ x: x, z: fenceSize / 2 });
+        }
     }
     
     // Left (west) and right (east) sides
@@ -773,8 +1252,7 @@ function createFence() {
         posts.push({ x: fenceSize / 2, z: z });
     }
     
-    // Create rails connecting posts
-    // Front side rails
+    // Front side rails (south) - horizontal
     for (let i = 0; i < numPostsPerSide; i++) {
         const x1 = -fenceSize / 2 + (i * postSpacing);
         const x2 = -fenceSize / 2 + ((i + 1) * postSpacing);
@@ -784,7 +1262,7 @@ function createFence() {
             { x: x1, z: z },
             { x: x2, z: z },
             1.5,
-            0
+            'horizontal'
         );
         fenceGroup.add(rail1);
         
@@ -792,35 +1270,41 @@ function createFence() {
             { x: x1, z: z },
             { x: x2, z: z },
             0.5,
-            0
+            'horizontal'
         );
         fenceGroup.add(rail2);
     }
     
-    // Back side rails
+    // Back side rails (north) - horizontal, skip gate area
     for (let i = 0; i < numPostsPerSide; i++) {
         const x1 = -fenceSize / 2 + (i * postSpacing);
         const x2 = -fenceSize / 2 + ((i + 1) * postSpacing);
         const z = fenceSize / 2;
         
-        const rail1 = createRail(
-            { x: x1, z: z },
-            { x: x2, z: z },
-            1.5,
-            0
-        );
-        fenceGroup.add(rail1);
-        
-        const rail2 = createRail(
-            { x: x1, z: z },
-            { x: x2, z: z },
-            0.5,
-            0
-        );
-        fenceGroup.add(rail2);
+        // Skip rails in gate area
+        if (Math.abs(x1) > gateWidth / 2 || Math.abs(x2) > gateWidth / 2) {
+            // Only create rail if both ends are outside gate area
+            if (Math.abs(x1) > gateWidth / 2 && Math.abs(x2) > gateWidth / 2) {
+                const rail1 = createRail(
+                    { x: x1, z: z },
+                    { x: x2, z: z },
+                    1.5,
+                    'horizontal'
+                );
+                fenceGroup.add(rail1);
+                
+                const rail2 = createRail(
+                    { x: x1, z: z },
+                    { x: x2, z: z },
+                    0.5,
+                    'horizontal'
+                );
+                fenceGroup.add(rail2);
+            }
+        }
     }
     
-    // Left side rails
+    // Left side rails (west) - vertical
     for (let i = 0; i < numPostsPerSide; i++) {
         const z1 = -fenceSize / 2 + (i * postSpacing);
         const z2 = -fenceSize / 2 + ((i + 1) * postSpacing);
@@ -830,7 +1314,7 @@ function createFence() {
             { x: x, z: z1 },
             { x: x, z: z2 },
             1.5,
-            Math.PI / 2
+            'vertical'
         );
         fenceGroup.add(rail1);
         
@@ -838,12 +1322,12 @@ function createFence() {
             { x: x, z: z1 },
             { x: x, z: z2 },
             0.5,
-            Math.PI / 2
+            'vertical'
         );
         fenceGroup.add(rail2);
     }
     
-    // Right side rails
+    // Right side rails (east) - vertical
     for (let i = 0; i < numPostsPerSide; i++) {
         const z1 = -fenceSize / 2 + (i * postSpacing);
         const z2 = -fenceSize / 2 + ((i + 1) * postSpacing);
@@ -853,7 +1337,7 @@ function createFence() {
             { x: x, z: z1 },
             { x: x, z: z2 },
             1.5,
-            Math.PI / 2
+            'vertical'
         );
         fenceGroup.add(rail1);
         
@@ -861,7 +1345,7 @@ function createFence() {
             { x: x, z: z1 },
             { x: x, z: z2 },
             0.5,
-            Math.PI / 2
+            'vertical'
         );
         fenceGroup.add(rail2);
     }
@@ -881,7 +1365,7 @@ function createTrack() {
     // Square track following the fence perimeter
     const fenceSize = 40;
     const trackWidth = 2; // Width of the track
-    const trackOffset = 1; // Distance from fence
+    const trackOffset = 2; // Distance from fence
     
     const trackMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
     const markingMaterial = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
@@ -900,26 +1384,6 @@ function createTrack() {
         mesh.receiveShadow = true;
         return mesh;
     }
-    
-    // Outer track segments (4 sides)
-    const outerTrackWidth = trackOuterSize;
-    const outerTrackThickness = trackWidth;
-    
-    // Top side (north)
-    const topTrack = createTrackSegment(outerTrackWidth, outerTrackThickness, 0, trackOuterSize / 2, 0);
-    trackGroup.add(topTrack);
-    
-    // Bottom side (south)
-    const bottomTrack = createTrackSegment(outerTrackWidth, outerTrackThickness, 0, -trackOuterSize / 2, 0);
-    trackGroup.add(bottomTrack);
-    
-    // Left side (west)
-    const leftTrack = createTrackSegment(outerTrackThickness, outerTrackWidth, -trackOuterSize / 2, 0, 0);
-    trackGroup.add(leftTrack);
-    
-    // Right side (east)
-    const rightTrack = createTrackSegment(outerTrackThickness, outerTrackWidth, trackOuterSize / 2, 0, 0);
-    trackGroup.add(rightTrack);
     
     // Inner track segments (to create the track shape)
     const innerTrackWidth = trackInnerSize;
@@ -1059,14 +1523,17 @@ function createSandbox() {
     castleGroup.position.set(0, 0.15, 0);
     sandboxGroup.add(castleGroup);
     
-    sandboxGroup.position.set(-8, 0, 8);
+    // Position sandbox
+    const sandboxRadius = 12;
+    const sandboxAngle = (3 * Math.PI) / 3.5; 
+    sandboxGroup.position.set(sandboxRadius * Math.cos(sandboxAngle), 0, sandboxRadius * Math.sin(sandboxAngle));
     scene.add(sandboxGroup);
     
     playgroundObjects.sandbox = {
         mesh: sandbox,
         group: sandboxGroup,
         type: 'sandbox',
-        position: { x: -8, y: 0.15, z: 8 }
+        position: { x: sandboxRadius * Math.cos(sandboxAngle), y: 0.15, z: sandboxRadius * Math.sin(sandboxAngle) }
     };
     
     debugLog("Sandbox created");
@@ -1106,20 +1573,23 @@ function createMonkeyBars() {
         monkeyBarsGroup.add(pole);
     }
     
-    monkeyBarsGroup.position.set(12, 0, -10);
+    // Position monkey bars at 180 degrees (west)
+    const monkeyBarsRadius = 16;
+    const monkeyBarsAngle = Math.PI / 0.6; // 180 degrees
+    monkeyBarsGroup.position.set(monkeyBarsRadius * Math.cos(monkeyBarsAngle), 0, monkeyBarsRadius * Math.sin(monkeyBarsAngle));
     scene.add(monkeyBarsGroup);
     
     playgroundObjects.monkeybars = {
         mesh: monkeyBarsGroup.children[0],
         group: monkeyBarsGroup,
         type: 'monkeybars',
-        position: { x: 12, y: barHeight / 2, z: -10 }
+        position: { x: monkeyBarsRadius * Math.cos(monkeyBarsAngle), y: barHeight / 2, z: monkeyBarsRadius * Math.sin(monkeyBarsAngle) }
     };
     
     debugLog("Monkey bars created");
 }
 
-function createBench(position) {
+function createBench(position, rotation) {
     const benchGroup = new THREE.Group();
     benchGroup.name = "bench-group";
     
@@ -1157,6 +1627,9 @@ function createBench(position) {
     });
     
     benchGroup.position.set(position.x, position.y, position.z);
+    if (rotation !== undefined) {
+        benchGroup.rotation.y = rotation;
+    }
     scene.add(benchGroup);
     
     return benchGroup;
@@ -1165,15 +1638,16 @@ function createBench(position) {
 function createBenches() {
     debugLog("Creating benches...");
     
+    // Benches positioned at corners, rotated to face park center (0, 0, 0)
     const benchPositions = [
-        { x: -15, y: 0, z: -15 },
-        { x: 15, y: 0, z: -15 },
-        { x: -15, y: 0, z: 15 },
-        { x: 15, y: 0, z: 15 }
+        { x: -15, y: 0, z: -15, rotation: Math.PI / 4 }, // Bottom-left: face northeast
+        { x: 15, y: 0, z: -15, rotation: -Math.PI / 4 }, // Bottom-right: face northwest
+        { x: -15, y: 0, z: 15, rotation: -Math.PI / 0.83 }, // Top-left: face southeast
+        { x: 15, y: 0, z: 15, rotation: -Math.PI / 1.3 } // Top-right: face southwest
     ];
     
     benchPositions.forEach(pos => {
-        createBench(pos);
+        createBench({ x: pos.x, y: pos.y, z: pos.z }, pos.rotation);
     });
     
     debugLog("Benches created");
@@ -1207,7 +1681,7 @@ function createFountain(position) {
     // Top tier
     const topGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.3, 16);
     const top = new THREE.Mesh(topGeometry, stoneMaterial);
-    top.position.y = 1.15;
+    top.position.y = 1;
     top.castShadow = true;
     fountainGroup.add(top);
     
@@ -1282,7 +1756,7 @@ function createTrees() {
         { x: 18, y: 0, z: -18 },
         { x: -18, y: 0, z: 18 },
         { x: 18, y: 0, z: 18 },
-        { x: 0, y: 0, z: -18 },
+        // Removed tree at { x: 0, y: 0, z: -18 } - behind billboard
         { x: -18, y: 0, z: 0 },
         { x: 18, y: 0, z: 0 },
         { x: 0, y: 0, z: 18 }
@@ -1451,6 +1925,13 @@ function onMouseClick(event) {
         }
         
         if (playgroundObject && objectType) {
+            // Special handling for gate
+            if (objectType === 'gate') {
+                toggleGate();
+                focusOnObject(playgroundObject.position);
+                return;
+            }
+            
             showProjectModal(objectType);
             
             // Focus camera on the clicked object
@@ -1512,7 +1993,7 @@ function focusOnObject(position) {
 function resetCamera() {
     // Reset camera to default position
     targetCameraPosition = { x: 0, y: 10, z: 20 };
-    targetLookAt = { x: 0, y: 0, z: 0 };
+    targetLookAt = { x: 0, y: 10, z: 15 };
     cameraRotation = { x: 0, y: 0 };
     cameraDistance = 20;
     
@@ -1569,7 +2050,7 @@ function onMouseUp(event) {
 
 function onWheel(event) {
     if (streetViewMode) {
-        // In street view, wheel does nothing or could move forward/backward
+        // In street view, wheel does nothing
         return;
     }
     
@@ -1603,12 +2084,192 @@ function setupStreetViewControls() {
             moveInStreetView('backward');
         }
         if (keysPressed['a'] || keysPressed['arrowleft']) {
-            moveInStreetView('left');
-        }
-        if (keysPressed['d'] || keysPressed['arrowright']) {
             moveInStreetView('right');
         }
+        if (keysPressed['d'] || keysPressed['arrowright']) {
+            moveInStreetView('left');
+        }
     }, 16); // ~60fps
+}
+
+// Touch control variables
+let touchStartX = 0;
+let touchStartY = 0;
+let touchStartDistance = 0;
+let isTouching = false;
+let touchStartTime = 0;
+let virtualJoystick = null;
+let joystickActive = false;
+
+// Setup touch controls
+function setupTouchControls() {
+    // Touch start
+    window.addEventListener('touchstart', (event) => {
+        isTouching = true;
+        touchStartTime = Date.now();
+        
+        if (event.touches.length === 1) {
+            touchStartX = event.touches[0].clientX;
+            touchStartY = event.touches[0].clientY;
+        } else if (event.touches.length === 2) {
+            // Pinch zoom
+            const dx = event.touches[0].clientX - event.touches[1].clientX;
+            const dy = event.touches[0].clientY - event.touches[1].clientY;
+            touchStartDistance = Math.sqrt(dx * dx + dy * dy);
+        }
+    }, { passive: true });
+    
+    // Touch move
+    window.addEventListener('touchmove', (event) => {
+        if (!isTouching) return;
+        
+        if (event.touches.length === 1) {
+            const touchX = event.touches[0].clientX;
+            const touchY = event.touches[0].clientY;
+            const deltaX = touchX - touchStartX;
+            const deltaY = touchY - touchStartY;
+            
+            if (streetViewMode) {
+                // Street view camera look
+                streetViewDirection += deltaX * 0.005;
+                // Could add pitch control here if needed
+            } else {
+                // Orbit camera rotation
+                cameraRotation.y += deltaX * 0.005;
+                cameraRotation.x -= deltaY * 0.005;
+                
+                // Limit vertical rotation to prevent flipping
+                cameraRotation.x = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, cameraRotation.x));
+            }
+            
+            touchStartX = touchX;
+            touchStartY = touchY;
+        } else if (event.touches.length === 2) {
+            // Pinch zoom
+            const dx = event.touches[0].clientX - event.touches[1].clientX;
+            const dy = event.touches[0].clientY - event.touches[1].clientY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const delta = distance - touchStartDistance;
+            
+            if (!streetViewMode) {
+                cameraDistance = Math.max(10, Math.min(100, cameraDistance - delta * 0.1));
+            }
+            
+            touchStartDistance = distance;
+        }
+    }, { passive: true });
+    
+    // Touch end
+    window.addEventListener('touchend', (event) => {
+        const touchDuration = Date.now() - touchStartTime;
+        
+        // If it was a quick tap (< 200ms) and didn't move much, treat as click
+        if (touchDuration < 200 && event.changedTouches.length === 1) {
+            const touch = event.changedTouches[0];
+            const fakeEvent = {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            };
+            onMouseClick(fakeEvent);
+        }
+        
+        isTouching = false;
+    }, { passive: true });
+    
+    debugLog("Touch controls initialized");
+}
+
+// Create virtual joystick for street view movement on mobile
+function createVirtualJoystick() {
+    const joystickContainer = document.createElement('div');
+    joystickContainer.id = 'virtual-joystick';
+    joystickContainer.style.position = 'fixed';
+    joystickContainer.style.bottom = '80px';
+    joystickContainer.style.left = '20px';
+    joystickContainer.style.width = '100px';
+    joystickContainer.style.height = '100px';
+    joystickContainer.style.borderRadius = '50%';
+    joystickContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+    joystickContainer.style.border = '2px solid rgba(255, 255, 255, 0.5)';
+    joystickContainer.style.display = 'none';
+    joystickContainer.style.zIndex = '1000';
+    
+    const joystickKnob = document.createElement('div');
+    joystickKnob.style.position = 'absolute';
+    joystickKnob.style.top = '50%';
+    joystickKnob.style.left = '50%';
+    joystickKnob.style.width = '40px';
+    joystickKnob.style.height = '40px';
+    joystickKnob.style.borderRadius = '50%';
+    joystickKnob.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
+    joystickKnob.style.transform = 'translate(-50%, -50%)';
+    joystickKnob.style.transition = 'all 0.1s';
+    
+    joystickContainer.appendChild(joystickKnob);
+    document.body.appendChild(joystickContainer);
+    
+    virtualJoystick = { container: joystickContainer, knob: joystickKnob };
+    
+    // Joystick touch handlers
+    let joystickStartX = 0;
+    let joystickStartY = 0;
+    
+    joystickContainer.addEventListener('touchstart', (event) => {
+        event.preventDefault();
+        joystickActive = true;
+        const touch = event.touches[0];
+        const rect = joystickContainer.getBoundingClientRect();
+        joystickStartX = touch.clientX - rect.left - rect.width / 2;
+        joystickStartY = touch.clientY - rect.top - rect.height / 2;
+    });
+    
+    joystickContainer.addEventListener('touchmove', (event) => {
+        event.preventDefault();
+        if (!joystickActive || !streetViewMode) return;
+        
+        const touch = event.touches[0];
+        const rect = joystickContainer.getBoundingClientRect();
+        const deltaX = touch.clientX - rect.left - rect.width / 2;
+        const deltaY = touch.clientY - rect.top - rect.height / 2;
+        
+        // Limit knob movement
+        const maxDistance = 30;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        const limitedX = distance > maxDistance ? (deltaX / distance) * maxDistance : deltaX;
+        const limitedY = distance > maxDistance ? (deltaY / distance) * maxDistance : deltaY;
+        
+        joystickKnob.style.transform = `translate(calc(-50% + ${limitedX}px), calc(-50% + ${limitedY}px))`;
+        
+        // Move in street view based on joystick direction
+        if (Math.abs(limitedY) > 5) {
+            if (limitedY < 0) {
+                moveInStreetView('forward');
+            } else {
+                moveInStreetView('backward');
+            }
+        }
+        if (Math.abs(limitedX) > 5) {
+            if (limitedX < 0) {
+                moveInStreetView('right');
+            } else {
+                moveInStreetView('left');
+            }
+        }
+    });
+    
+    joystickContainer.addEventListener('touchend', () => {
+        joystickActive = false;
+        joystickKnob.style.transform = 'translate(-50%, -50%)';
+    });
+    
+    debugLog("Virtual joystick created");
+}
+
+// Toggle virtual joystick visibility
+function toggleVirtualJoystick(show) {
+    if (virtualJoystick && virtualJoystick.container) {
+        virtualJoystick.container.style.display = show ? 'block' : 'none';
+    }
 }
 
 function animateSwing(group) {
@@ -1666,7 +2327,7 @@ function animateMerryGoRound() {
     
     setTimeout(() => {
         group.userData.speed = originalSpeed;
-    }, 3000);
+    }, 10000);
 }
 
 function showProjectModal(projectType) {
@@ -1779,6 +2440,9 @@ function toggleStreetView() {
             btn.textContent = 'Exit Street View';
             btn.classList.add('active');
         }
+        
+        // Show virtual joystick on mobile
+        toggleVirtualJoystick(true);
     } else {
         // Exit street view - reset to normal view
         resetCamera();
@@ -1789,6 +2453,9 @@ function toggleStreetView() {
             btn.textContent = 'Street View';
             btn.classList.remove('active');
         }
+        
+        // Hide virtual joystick
+        toggleVirtualJoystick(false);
     }
 }
 
@@ -1833,8 +2500,20 @@ function animate() {
         // Update camera position
         updateCamera();
         
+        // Update day cycle
+        updateDayCycle();
+        
         // Update rain particles
         updateRainParticles();
+        
+        // Update clouds
+        updateClouds();
+        
+        // Update birds
+        updateBirds();
+        
+        // Update gate
+        updateGate();
         
         // Update physics
         if (physicsEnabled && world) {
@@ -2012,16 +2691,16 @@ function init() {
         
         // Scene setup
         scene = new THREE.Scene();
-        scene.fog = new THREE.Fog(0x87CEEB, 10, 100);
+        scene.fog = new THREE.Fog(0x87CEEB, 10, 500); // Increased far distance for visibility
         
         // Camera setup
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 10, 20);
-        camera.lookAt(0, 0, 0);
+        camera.position.set(0, 80, 20);
+        camera.lookAt(0, 60, 20);
         
         // Set initial target positions
-        targetCameraPosition = { x: 0, y: 10, z: 20 };
-        targetLookAt = { x: 0, y: 0, z: 0 };
+        targetCameraPosition = { x: 0, y: 60, z: 20 };
+        targetLookAt = { x: 0, y: 10, z: 15 };
         
         // Renderer setup
         renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -2080,6 +2759,16 @@ function init() {
         createRainParticles();
         createLightningFlash();
         createWeatherMenu();
+        
+        // Create celestial objects
+        createSun();
+        createMoon();
+        createStars();
+        
+        // Create clouds and birds
+        createClouds();
+        createBirds();
+        
         setWeather('day');
         
         debugLog("Weather system initialized");
@@ -2094,6 +2783,11 @@ function init() {
         createTrack();
         createSandbox();
         createMonkeyBars();
+        // Create swing at 225 degrees (southwest) - 45 degrees from monkey bars
+        const swingRadius = 12;
+        const swingAngle = (5 * Math.PI) / 4; // 225 degrees
+        createSwing({ x: swingRadius * Math.cos(swingAngle), y: 0, z: swingRadius * Math.sin(swingAngle) }, 'swing');
+        createGate();
         createBenches();
         createFountains();
         createTrees();
@@ -2121,6 +2815,8 @@ function init() {
         createStreetViewButton();
         createNavigationHints();
         setupStreetViewControls();
+        setupTouchControls();
+        createVirtualJoystick();
         
         debugLog("Event listeners added");
         
