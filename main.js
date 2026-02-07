@@ -5,8 +5,8 @@ const projects = {
         description: "An interactive web application that demonstrates real-time physics simulation using JavaScript and WebGL. This project showcases advanced animation techniques and user interaction patterns.",
         technologies: ["JavaScript", "WebGL", "Physics", "Animation"],
         links: [
-            { text: "Live Demo", url: "#", type: "primary" },
-            { text: "GitHub", url: "#", type: "secondary" }
+            { text: "Live Demo", url: "https://urdu2romanurdu.streamlit.app/", type: "primary" },
+            { text: "GitHub", url: "https://github.com/Hamza-Bhatti07/Urdu-to-Roman-Urdu-Transliterator-NMT-Seq2Seq-", type: "secondary" }
         ]
     },
     slide: {
