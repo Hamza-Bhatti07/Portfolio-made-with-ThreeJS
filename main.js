@@ -1,9 +1,9 @@
 // Project data template - EDIT THIS SECTION
 const projects = {
     swing: {
-        title: "Swing Project",
-        description: "An interactive web application that demonstrates real-time physics simulation using JavaScript and WebGL. This project showcases advanced animation techniques and user interaction patterns.",
-        technologies: ["JavaScript", "WebGL", "Physics", "Animation"],
+        title: "Urdu to Roman Urdu Transliterator NMT Seq2Seq Project",
+        description: "This app instantly converts text from the Urdu script into Roman Urdu (Urdu written with English letters), making it easier to read and share in digital chats. It uses a smart translation model trained on poetry and everyday language to ensure the results feel natural and accurate.",
+        technologies: ["Python", "pytorch", "numpy", "streamlit"],
         links: [
             { text: "Live Demo", url: "https://urdu2romanurdu.streamlit.app/", type: "primary" },
             { text: "GitHub", url: "https://github.com/Hamza-Bhatti07/Urdu-to-Roman-Urdu-Transliterator-NMT-Seq2Seq-", type: "secondary" }
@@ -29,7 +29,7 @@ const projects = {
     },
     merrygoround: {
         title: "Merry-go-round Project",
-        description: "A mobile-first application designed for iOS and Android platforms. This project demonstrates cross-platform development skills and attention to user experience design.",
+        description: "An interactive web application that demonstrates real-time physics simulation using JavaScript and WebGL. This project showcases advanced animation techniques and user interaction patterns.",
         technologies: ["React Native", "Firebase", "Redux", "UI/UX"],
         links: [
             { text: "App Store", url: "#", type: "primary" },
