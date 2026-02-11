@@ -10,30 +10,30 @@ const projects = {
         ]
     },
     slide: {
-        title: "Slide Project",
-        description: "A full-stack application built with modern frameworks, featuring a responsive design and seamless user experience. This project demonstrates proficiency in both frontend and backend development.",
-        technologies: ["React", "Node.js", "MongoDB", "Express"],
+        title: "Random Jpoke Generator Project",
+        description: "A simple web app utilizing JokeAPI to fetch and display jokes, with guardrails and filters in place to avoid NSFW and offensive jokes.",
+        technologies: ["Html", "CSS", "JavaScript", "JokeAPI"],
         links: [
-            { text: "View Project", url: "#", type: "primary" },
-            { text: "Source Code", url: "#", type: "secondary" }
+            { text: "Live Link", url: "https://hamza-bhatti07.github.io/Random-Joke-Generator/", type: "primary" },
+            { text: "Github", url: "https://github.com/Hamza-Bhatti07/Random-Joke-Generator/deployments", type: "secondary" }
         ]
     },
     seesaw: {
-        title: "Seesaw Project",
-        description: "A machine learning application that analyzes and predicts patterns in large datasets. This project showcases data preprocessing, model training, and visualization capabilities.",
-        technologies: ["Python", "TensorFlow", "Pandas", "Flask"],
+        title: "Vanilla Portfolio Project",
+        description: "My very first attempt at building a website. It is a simple demo portfolio.",
+        technologies: ["Html", "CSS"],
         links: [
             { text: "Documentation", url: "#", type: "primary" },
             { text: "Research Paper", url: "#", type: "secondary" }
         ]
     },
     merrygoround: {
-        title: "Merry-go-round Project",
-        description: "An interactive web application that demonstrates real-time physics simulation using JavaScript and WebGL. This project showcases advanced animation techniques and user interaction patterns.",
-        technologies: ["React Native", "Firebase", "Redux", "UI/UX"],
+        title: "My Portfolio Project",
+        description: "An interactive web application that demonstrates real-time physics simulation using JavaScript and WebGL. This project showcases my projects, interact with it using street view or normal view. Each artefact represents a project.",
+        technologies: ["Three.js", "WebGL", "Javascript", "UI/UX"],
         links: [
-            { text: "App Store", url: "#", type: "primary" },
-            { text: "Play Store", url: "#", type: "secondary" }
+            { text: "Live Link", url: "https://hamza-bhatti07.github.io/Portfolio-made-with-ThreeJS/", type: "primary" },
+            { text: "Github", url: "https://github.com/Hamza-Bhatti07/Portfolio-made-with-ThreeJS/tree/main", type: "secondary" }
         ]
     }
 };
