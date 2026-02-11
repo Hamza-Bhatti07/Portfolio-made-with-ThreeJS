@@ -20,11 +20,11 @@ const projects = {
     },
     seesaw: {
         title: "Vanilla Portfolio Project",
-        description: "My very first attempt at building a website. It is a simple demo portfolio.",
+        description: "My very first attempt at building a website. It is a simple demo portfolio static webpage.",
         technologies: ["Html", "CSS"],
         links: [
-            { text: "Documentation", url: "#", type: "primary" },
-            { text: "Research Paper", url: "#", type: "secondary" }
+            { text: "Live Link", url: "https://hamza-bhatti07.github.io/Portfolio-main/", type: "primary" },
+            { text: "Github", url: "https://github.com/Hamza-Bhatti07/Portfolio-main", type: "secondary" }
         ]
     },
     merrygoround: {
