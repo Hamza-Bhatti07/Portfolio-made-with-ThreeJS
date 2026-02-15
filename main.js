@@ -1771,7 +1771,7 @@ function createTrack() {
         const mesh = new THREE.Mesh(geometry, trackMaterial);
         mesh.rotation.x = -Math.PI / 2;
         mesh.rotation.z = rotation || 0;
-        mesh.position.set(x, 0.1, z);
+        mesh.position.set(x, 0.5, z);
         mesh.receiveShadow = true;
         return mesh;
     }
@@ -1781,26 +1781,26 @@ function createTrack() {
     const innerTrackThickness = trackWidth;
     
     // Top inner
-    const topInner = createTrackSegment(innerTrackWidth, innerTrackThickness, 0, trackInnerSize / 2, 0.5);
+    const topInner = createTrackSegment(innerTrackWidth, innerTrackThickness, 0, trackInnerSize / 2, 0);
     topInner.material = markingMaterial;
     trackGroup.add(topInner);
     
     // Bottom inner
-    const bottomInner = createTrackSegment(innerTrackWidth, innerTrackThickness, 0, -trackInnerSize / 2, 0.5);
+    const bottomInner = createTrackSegment(innerTrackWidth, innerTrackThickness, 0, -trackInnerSize / 2, 0);
     bottomInner.material = markingMaterial;
     trackGroup.add(bottomInner);
     
     // Left inner
-    const leftInner = createTrackSegment(innerTrackThickness, innerTrackWidth, -trackInnerSize / 2, 0, 0.5);
+    const leftInner = createTrackSegment(innerTrackThickness, innerTrackWidth, -trackInnerSize / 2, 0, 0);
     leftInner.material = markingMaterial;
     trackGroup.add(leftInner);
     
     // Right inner
-    const rightInner = createTrackSegment(innerTrackThickness, innerTrackWidth, trackInnerSize / 2, 0, 0.5);
+    const rightInner = createTrackSegment(innerTrackThickness, innerTrackWidth, trackInnerSize / 2, 0, 0);
     rightInner.material = markingMaterial;
     trackGroup.add(rightInner);
     
-    trackGroup.position.set(0, 0, 0.5);
+    trackGroup.position.set(0, 0, 0);
     scene.add(trackGroup);
     
     debugLog("Track created");
