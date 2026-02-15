@@ -1771,7 +1771,7 @@ function createTrack() {
         const mesh = new THREE.Mesh(geometry, trackMaterial);
         mesh.rotation.x = -Math.PI / 2;
         mesh.rotation.z = rotation || 0;
-        mesh.position.set(x, 0.5, z);
+        mesh.position.set(x, 0.2, z);
         mesh.receiveShadow = true;
         return mesh;
     }
@@ -1800,7 +1800,7 @@ function createTrack() {
     rightInner.material = markingMaterial;
     trackGroup.add(rightInner);
     
-    trackGroup.position.set(0, 0, 0);
+    trackGroup.position.set(0, 0.1, 0);
     scene.add(trackGroup);
     
     debugLog("Track created");
