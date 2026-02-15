@@ -10,7 +10,7 @@ const projects = {
         ]
     },
     slide: {
-        title: "Random Jpoke Generator Project",
+        title: "Random Joke Generator Project",
         description: "A simple web app utilizing JokeAPI to fetch and display jokes, with guardrails and filters in place to avoid NSFW and offensive jokes.",
         technologies: ["Html", "CSS", "JavaScript", "JokeAPI"],
         links: [
@@ -743,71 +743,63 @@ function updateCinematicCamera() {
 function createGate() {
     const gateGroup = new THREE.Group();
     gateGroup.name = "gate-group";
-    
-    // Gate posts
+
     const postMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
     const postGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 8);
-    
-    const leftPost = new THREE.Mesh(postGeometry, postMaterial);
-    leftPost.position.set(-2, 3, 0);
-    leftPost.castShadow = true;
-    gateGroup.add(leftPost);
-    
-    const rightPost = new THREE.Mesh(postGeometry, postMaterial);
-    rightPost.position.set(2, 3, 0);
-    rightPost.castShadow = true;
-    gateGroup.add(rightPost);
-    
-    // Gate doors (two halves)
     const doorMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
     const doorGeometry = new THREE.BoxGeometry(1.8, 5, 0.2);
-    
-    // Left door
+
+    // 1. Posts
+    const leftPost = new THREE.Mesh(postGeometry, postMaterial);
+    leftPost.position.set(-2, 3, 0);
+    gateGroup.add(leftPost);
+
+    const rightPost = new THREE.Mesh(postGeometry, postMaterial);
+    rightPost.position.set(2, 3, 0);
+    gateGroup.add(rightPost);
+
+    // 2. Left Hinge & Door
+    const leftHinge = new THREE.Group();
+    leftHinge.position.set(-1.9, 2.5, 0); // Positioned right next to the left post
+    gateGroup.add(leftHinge);
+
     const leftDoor = new THREE.Mesh(doorGeometry, doorMaterial);
-    leftDoor.position.set(-1.1, 2.5, 0);
-    leftDoor.castShadow = true;
-    leftDoor.userData.isLeftDoor = true;
-    gateGroup.add(leftDoor);
-    
-    // Right door
+    // Shift the mesh half its width so the edge sits at the hinge (0,0,0)
+    leftDoor.position.set(0.9, 0, 0); 
+    leftHinge.add(leftDoor);
+
+    // 3. Right Hinge & Door
+    const rightHinge = new THREE.Group();
+    rightHinge.position.set(1.9, 2.5, 0); // Positioned right next to the right post
+    gateGroup.add(rightHinge);
+
     const rightDoor = new THREE.Mesh(doorGeometry, doorMaterial);
-    rightDoor.position.set(1.1, 2.5, 0);
-    rightDoor.castShadow = true;
-    rightDoor.userData.isRightDoor = true;
-    gateGroup.add(rightDoor);
-    
-    // Top bar connecting posts
+    // Shift the mesh half its width the other way
+    rightDoor.position.set(-0.9, 0, 0); 
+    rightHinge.add(rightDoor);
+
+    // 4. Top Bar
     const topBarGeometry = new THREE.BoxGeometry(4.5, 0.2, 0.3);
     const topBar = new THREE.Mesh(topBarGeometry, postMaterial);
     topBar.position.set(0, 5.5, 0);
-    topBar.castShadow = true;
     gateGroup.add(topBar);
-    
-    // Position gate at north side (opposite billboard at z: -15)
+
+    // Position entire gate
     gateGroup.position.set(0, 0, 20);
-    gateGroup.rotation.y = Math.PI; // Face south (toward playground)
-    
+    gateGroup.rotation.y = Math.PI; 
+
+    // Store hinges in userData instead of the door meshes
     gateGroup.userData = {
-        leftDoor: leftDoor,
-        rightDoor: rightDoor,
-        leftPost: leftPost,
-        rightPost: rightPost,
+        leftHinge: leftHinge,
+        rightHinge: rightHinge,
         isOpen: false,
         targetRotation: 0
     };
-    
+
     gate = gateGroup;
     scene.add(gateGroup);
     
-    // Make gate clickable
-    playgroundObjects.gate = {
-        mesh: topBar,
-        group: gateGroup,
-        type: 'gate',
-        position: { x: 0, y: 2.5, z: 20 }
-    };
-    
-    debugLog("Gate created");
+    playgroundObjects.gate = { mesh: topBar, group: gateGroup, type: 'gate' };
 }
 
 // Toggle gate
@@ -823,20 +815,15 @@ function toggleGate() {
 function updateGate() {
     if (!gate || !gate.userData) return;
     
-    const leftDoor = gate.userData.leftDoor;
-    const rightDoor = gate.userData.rightDoor;
+    const leftHinge = gate.userData.leftHinge;
+    const rightHinge = gate.userData.rightHinge;
     
-    if (!leftDoor || !rightDoor) return;
-    
-    // Animate gate opening/closing
     const targetRot = gate.userData.targetRotation;
-    const currentLeftRot = leftDoor.rotation.y;
-    const currentRightRot = rightDoor.rotation.y;
-    
-    // Smooth interpolation
     const speed = 0.05;
-    leftDoor.rotation.y += (targetRot - currentLeftRot) * speed;
-    rightDoor.rotation.y += (-targetRot - currentRightRot) * speed;
+
+    // Rotate the HINGES, which swings the attached doors
+    leftHinge.rotation.y += (targetRot - leftHinge.rotation.y) * speed;
+    rightHinge.rotation.y += (-targetRot - rightHinge.rotation.y) * speed;
 }
 
 function triggerLightning() {
