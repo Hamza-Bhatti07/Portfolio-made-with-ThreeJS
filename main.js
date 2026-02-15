@@ -2322,10 +2322,8 @@ function createTrees() {
         { x: 18, y: 0, z: -18 },
         { x: -18, y: 0, z: 18 },
         { x: 18, y: 0, z: 18 },
-        // Removed tree at { x: 0, y: 0, z: -18 } - behind billboard
         { x: -18, y: 0, z: 0 },
         { x: 18, y: 0, z: 0 },
-        { x: 0, y: 0, z: 18 }
     ];
     
     treePositions.forEach(pos => {
