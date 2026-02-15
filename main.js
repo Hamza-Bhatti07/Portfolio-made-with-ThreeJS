@@ -19,12 +19,12 @@ const projects = {
         ]
     },
     seesaw: {
-        title: "Vanilla Portfolio Project",
-        description: "My very first attempt at building a website. It is a simple demo portfolio static webpage.",
-        technologies: ["Html", "CSS"],
+        title: "Neural-Storyteller Project",
+        description: "a multimodal deep learning model that generates natural language descriptions for images using a Sequence-to-Sequence (Seq2Seq) architecture.",
+        technologies: ["Pytorch", "Gradio", "Pandas", "Numpy"],
         links: [
-            { text: "Live Link", url: "https://hamza-bhatti07.github.io/Portfolio-main/", type: "primary" },
-            { text: "Github", url: "https://github.com/Hamza-Bhatti07/Portfolio-main", type: "secondary" }
+            { text: "Live Link", url: "https://huggingface.co/spaces/Hamza-Bhatti07/Neural_StoryTeller", type: "primary" },
+            { text: "Github", url: "https://github.com/Hamza-Bhatti07/Neural-Storyteller-Image-Captioning-with-Seq2Seq", type: "secondary" }
         ]
     },
     merrygoround: {
