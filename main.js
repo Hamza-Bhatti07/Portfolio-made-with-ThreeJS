@@ -690,29 +690,27 @@ function setupPostProcessing() {
 }
 
 // Cinematic camera path
+let cinematicCurve; // Replace cinematicPath array
+
 function startCinematicMode() {
     if (cinematicMode) return;
-    
     cinematicMode = true;
     cinematicProgress = 0;
-    
-    // Define a circular path around the playground
-    cinematicPath = [];
-    const points = 100;
+
+    const points = [];
     const radius = 35;
-    for (let i = 0; i < points; i++) {
-        const angle = (i / points) * Math.PI * 2;
-        cinematicPath.push({
-            position: {
-                x: Math.cos(angle) * radius,
-                y: 10 + Math.sin(angle * 3) * 3,
-                z: Math.sin(angle) * radius
-            },
-            lookAt: { x: 0, y: 2, z: 0 }
-        });
+    // We only need ~8-12 "control points" for a smooth circle, not 100
+    for (let i = 0; i <= 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        points.push(new THREE.Vector3(
+            Math.cos(angle) * radius,
+            10 + Math.sin(angle * 3) * 3,
+            Math.sin(angle) * radius
+        ));
     }
-    
-    debugLog("Cinematic mode started");
+    // Create a smooth mathematical path through those points
+    cinematicCurve = new THREE.CatmullRomCurve3(points);
+    cinematicCurve.closed = true; 
 }
 
 function stopCinematicMode() {
@@ -721,21 +719,26 @@ function stopCinematicMode() {
     debugLog("Cinematic mode stopped");
 }
 
+const clock = new THREE.Clock();
+
 function updateCinematicCamera() {
-    if (!cinematicMode || cinematicPath.length === 0) return;
+    if (!cinematicMode || !cinematicCurve) return;
+
+    // Get the time passed since last frame
+    const delta = clock.getDelta(); 
+    const speed = 0.05; // Adjust this for rotation speed
     
-    cinematicProgress += 0.001;
+    cinematicProgress += delta * speed;
     if (cinematicProgress >= 1) cinematicProgress = 0;
+
+    // Get the exact smoothed position on the curve (0.0 to 1.0)
+    const smoothPosition = cinematicCurve.getPoint(cinematicProgress);
     
-    const index = Math.floor(cinematicProgress * cinematicPath.length);
-    const point = cinematicPath[index];
-    
-    if (camera && point) {
-        camera.position.set(point.position.x, point.position.y, point.position.z);
-        camera.lookAt(point.lookAt.x, point.lookAt.y, point.lookAt.z);
+    if (camera) {
+        camera.position.copy(smoothPosition);
+        camera.lookAt(0, 2, 0); // Still looking at the center
     }
 }
-
 // Create gate with opening for entry
 function createGate() {
     const gateGroup = new THREE.Group();
