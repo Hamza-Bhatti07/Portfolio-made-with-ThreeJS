@@ -72,8 +72,9 @@ let dayCycleEnabled = true;
 let dayCycleTime = 0; // 0-1, where 0 is midnight, 0.5 is noon
 let dayCycleSpeed = 0.0001; // Speed of day cycle
 let manualWeatherOverride = false; // Flag to disable auto weather when manually set
-let gate = null;
+let gate; 
 let gateOpen = false;
+const gateOpenSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2007/2007-preview.mp3');
 
 // Camera control variables
 let isDragging = false;
@@ -760,22 +761,20 @@ function createGate() {
 
     // 2. Left Hinge & Door
     const leftHinge = new THREE.Group();
-    leftHinge.position.set(-1.9, 2.5, 0); // Positioned right next to the left post
+    leftHinge.position.set(-1.9, 2.5, 0); 
     gateGroup.add(leftHinge);
 
     const leftDoor = new THREE.Mesh(doorGeometry, doorMaterial);
-    // Shift the mesh half its width so the edge sits at the hinge (0,0,0)
-    leftDoor.position.set(0.9, 0, 0); 
+    leftDoor.position.set(0.9, 0, 0); // Offset half width
     leftHinge.add(leftDoor);
 
     // 3. Right Hinge & Door
     const rightHinge = new THREE.Group();
-    rightHinge.position.set(1.9, 2.5, 0); // Positioned right next to the right post
+    rightHinge.position.set(1.9, 2.5, 0); 
     gateGroup.add(rightHinge);
 
     const rightDoor = new THREE.Mesh(doorGeometry, doorMaterial);
-    // Shift the mesh half its width the other way
-    rightDoor.position.set(-0.9, 0, 0); 
+    rightDoor.position.set(-0.9, 0, 0); // Offset half width
     rightHinge.add(rightDoor);
 
     // 4. Top Bar
@@ -784,31 +783,43 @@ function createGate() {
     topBar.position.set(0, 5.5, 0);
     gateGroup.add(topBar);
 
-    // Position entire gate
-    gateGroup.position.set(0, 0, 20);
+    // Final Positioning
+    gateGroup.position.set(0, 0, 18); // Centered on north border
     gateGroup.rotation.y = Math.PI; 
 
-    // Store hinges in userData instead of the door meshes
+    // IMPORTANT: Data Storage
     gateGroup.userData = {
         leftHinge: leftHinge,
         rightHinge: rightHinge,
         isOpen: false,
-        targetRotation: 0
+        targetRotation: 0,
+        type: 'gate'
     };
 
-    gate = gateGroup;
+    gate = gateGroup; // Assign to global variable
     scene.add(gateGroup);
     
-    playgroundObjects.gate = { mesh: topBar, group: gateGroup, type: 'gate' };
+    // Ensure this object is added to your click-detection array
+    if (typeof playgroundObjects !== 'undefined') {
+        // We add the Group or the specific Meshes so the Raycaster finds them
+        playgroundObjects.gate = { mesh: topBar, group: gateGroup, type: 'gate' };
+    }
 }
-
 // Toggle gate
 function toggleGate() {
-    if (!gate || !gate.userData) return;
+    if (!gate) return;
     
+    // Reverse the current state
     gateOpen = !gateOpen;
     gate.userData.isOpen = gateOpen;
+    
+    // Set the target angle (90 degrees = PI/2)
     gate.userData.targetRotation = gateOpen ? Math.PI / 2 : 0;
+
+    // Sound effect trigger
+    gateOpenSound.currentTime = 0;
+    gateOpenSound.volume = 0.3;
+    gateOpenSound.play().catch(() => {/* Ignore browser block */});
 }
 
 // Update gate animation
@@ -818,12 +829,12 @@ function updateGate() {
     const leftHinge = gate.userData.leftHinge;
     const rightHinge = gate.userData.rightHinge;
     
-    const targetRot = gate.userData.targetRotation;
+    const { leftHinge, rightHinge, targetRotation } = gate.userData.targetRotation;
     const speed = 0.05;
 
-    // Rotate the HINGES, which swings the attached doors
-    leftHinge.rotation.y += (targetRot - leftHinge.rotation.y) * speed;
-    rightHinge.rotation.y += (-targetRot - rightHinge.rotation.y) * speed;
+    // Smooth Interpolation
+    leftHinge.rotation.y += (targetRotation - leftHinge.rotation.y) * speed;
+    rightHinge.rotation.y += (-targetRotation - rightHinge.rotation.y) * speed;
 }
 
 function triggerLightning() {
@@ -2388,7 +2399,7 @@ function createWalkingPaths() {
         pathMaterial
     );
     horizontalPath.rotation.x = -Math.PI / 2;
-    horizontalPath.position.set(0, 0.05, 0);
+    horizontalPath.position.set(0, 0.2, 0);
     horizontalPath.receiveShadow = true;
     pathGroup.add(horizontalPath);
     
@@ -2398,7 +2409,7 @@ function createWalkingPaths() {
         pathMaterial
     );
     verticalPath.rotation.x = -Math.PI / 2;
-    verticalPath.position.set(0, 0.05, 0);
+    verticalPath.position.set(0, 0.2, 0);
     verticalPath.receiveShadow = true;
     pathGroup.add(verticalPath);
     
@@ -2409,7 +2420,7 @@ function createWalkingPaths() {
     );
     diagonalPath1.rotation.x = -Math.PI / 2;
     diagonalPath1.rotation.z = Math.PI / 4;
-    diagonalPath1.position.set(0, 0.05, 0);
+    diagonalPath1.position.set(0, 0.2, 0);
     diagonalPath1.receiveShadow = true;
     pathGroup.add(diagonalPath1);
     
@@ -2419,7 +2430,7 @@ function createWalkingPaths() {
     );
     diagonalPath2.rotation.x = -Math.PI / 2;
     diagonalPath2.rotation.z = -Math.PI / 4;
-    diagonalPath2.position.set(0, 0.05, 0);
+    diagonalPath2.position.set(0, 0.2, 0);
     diagonalPath2.receiveShadow = true;
     pathGroup.add(diagonalPath2);
     
