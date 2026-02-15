@@ -829,7 +829,7 @@ function updateGate() {
     const leftHinge = gate.userData.leftHinge;
     const rightHinge = gate.userData.rightHinge;
     
-    const { leftHinge, rightHinge, targetRotation } = gate.userData.targetRotation;
+    const targetRotation = gate.userData.targetRotation;
     const speed = 0.05;
 
     // Smooth Interpolation
