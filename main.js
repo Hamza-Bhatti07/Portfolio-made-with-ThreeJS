@@ -72,7 +72,7 @@ let dayCycleEnabled = true;
 let dayCycleTime = 0; // 0-1, where 0 is midnight, 0.5 is noon
 let dayCycleSpeed = 0.0001; // Speed of day cycle
 let manualWeatherOverride = false; // Flag to disable auto weather when manually set
-let gate; 
+let gate = null; 
 let gateOpen = false;
 const gateOpenSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2007/2007-preview.mp3');
 
@@ -830,6 +830,7 @@ function updateGate() {
     const rightHinge = gate.userData.rightHinge;
     const targetRotation = gate.userData.targetRotation;
     const speed = 0.05;
+    
     // Smooth Interpolation
     leftHinge.rotation.y += (targetRotation - leftHinge.rotation.y) * speed;
     rightHinge.rotation.y += (-targetRotation - rightHinge.rotation.y) * speed;
