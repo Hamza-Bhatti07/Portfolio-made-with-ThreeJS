@@ -1781,26 +1781,26 @@ function createTrack() {
     const innerTrackThickness = trackWidth;
     
     // Top inner
-    const topInner = createTrackSegment(innerTrackWidth, innerTrackThickness, 0, trackInnerSize / 2, 0);
+    const topInner = createTrackSegment(innerTrackWidth, innerTrackThickness, 0, trackInnerSize / 2, 0.5);
     topInner.material = markingMaterial;
     trackGroup.add(topInner);
     
     // Bottom inner
-    const bottomInner = createTrackSegment(innerTrackWidth, innerTrackThickness, 0, -trackInnerSize / 2, 0);
+    const bottomInner = createTrackSegment(innerTrackWidth, innerTrackThickness, 0, -trackInnerSize / 2, 0.5);
     bottomInner.material = markingMaterial;
     trackGroup.add(bottomInner);
     
     // Left inner
-    const leftInner = createTrackSegment(innerTrackThickness, innerTrackWidth, -trackInnerSize / 2, 0, 0);
+    const leftInner = createTrackSegment(innerTrackThickness, innerTrackWidth, -trackInnerSize / 2, 0, 0.5);
     leftInner.material = markingMaterial;
     trackGroup.add(leftInner);
     
     // Right inner
-    const rightInner = createTrackSegment(innerTrackThickness, innerTrackWidth, trackInnerSize / 2, 0, 0);
+    const rightInner = createTrackSegment(innerTrackThickness, innerTrackWidth, trackInnerSize / 2, 0, 0.5);
     rightInner.material = markingMaterial;
     trackGroup.add(rightInner);
     
-    trackGroup.position.set(0, 0, 0);
+    trackGroup.position.set(0, 0, 0.5);
     scene.add(trackGroup);
     
     debugLog("Track created");
