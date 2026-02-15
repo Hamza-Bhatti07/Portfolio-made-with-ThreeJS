@@ -740,100 +740,96 @@ function updateCinematicCamera() {
         camera.lookAt(0, 2, 0); // Still looking at the center
     }
 }
+
 // Create gate with opening for entry
 function createGate() {
     const gateGroup = new THREE.Group();
     gateGroup.name = "gate-group";
-
+    // Gate posts
     const postMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-    const postGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 8);
-    const doorMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
-    const doorGeometry = new THREE.BoxGeometry(1.8, 5, 0.2);
-
-    // 1. Posts
+    const postGeometry = new THREE.CylinderGeometry(0.3, 0.3, 6, 8);   
     const leftPost = new THREE.Mesh(postGeometry, postMaterial);
     leftPost.position.set(-2, 3, 0);
+    leftPost.castShadow = true;
     gateGroup.add(leftPost);
-
     const rightPost = new THREE.Mesh(postGeometry, postMaterial);
     rightPost.position.set(2, 3, 0);
+    rightPost.castShadow = true;
     gateGroup.add(rightPost);
+    // Gate doors (two halves)
+    const doorMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+    const doorGeometry = new THREE.BoxGeometry(1.8, 5, 0.2);   
 
-    // 2. Left Hinge & Door
-    const leftHinge = new THREE.Group();
-    leftHinge.position.set(-1.9, 2.5, 0); 
-    gateGroup.add(leftHinge);
-
+    // Left door
     const leftDoor = new THREE.Mesh(doorGeometry, doorMaterial);
-    leftDoor.position.set(0.9, 0, 0); // Offset half width
-    leftHinge.add(leftDoor);
+    leftDoor.position.set(-1.1, 2.5, 0);
+    leftDoor.castShadow = true;
+    leftDoor.userData.isLeftDoor = true;
+    gateGroup.add(leftDoor);
 
-    // 3. Right Hinge & Door
-    const rightHinge = new THREE.Group();
-    rightHinge.position.set(1.9, 2.5, 0); 
-    gateGroup.add(rightHinge);
-
+    // Right door
     const rightDoor = new THREE.Mesh(doorGeometry, doorMaterial);
-    rightDoor.position.set(-0.9, 0, 0); // Offset half width
-    rightHinge.add(rightDoor);
+    rightDoor.position.set(1.1, 2.5, 0);
+    rightDoor.castShadow = true;
+    rightDoor.userData.isRightDoor = true;
+    gateGroup.add(rightDoor);
 
-    // 4. Top Bar
+    // Top bar connecting posts
     const topBarGeometry = new THREE.BoxGeometry(4.5, 0.2, 0.3);
     const topBar = new THREE.Mesh(topBarGeometry, postMaterial);
     topBar.position.set(0, 5.5, 0);
+    topBar.castShadow = true;
     gateGroup.add(topBar);
 
-    // Final Positioning
-    gateGroup.position.set(0, 0, 18); // Centered on north border
-    gateGroup.rotation.y = Math.PI; 
-
-    // IMPORTANT: Data Storage
+    // Position gate at north side (opposite billboard at z: -15)
+    gateGroup.position.set(0, 0, 20);
+    gateGroup.rotation.y = Math.PI; // Face south (toward playground)   
     gateGroup.userData = {
-        leftHinge: leftHinge,
-        rightHinge: rightHinge,
+        leftDoor: leftDoor,
+        rightDoor: rightDoor,
+        leftPost: leftPost,
+        rightPost: rightPost,
         isOpen: false,
-        targetRotation: 0,
-        type: 'gate'
+        targetRotation: 0
     };
-
-    gate = gateGroup; // Assign to global variable
+    gate = gateGroup;
     scene.add(gateGroup);
     
-    // Ensure this object is added to your click-detection array
-    if (typeof playgroundObjects !== 'undefined') {
-        // We add the Group or the specific Meshes so the Raycaster finds them
-        playgroundObjects.gate = { mesh: topBar, group: gateGroup, type: 'gate' };
-    }
+    // Make gate clickable
+    playgroundObjects.gate = {
+        mesh: topBar,
+        group: gateGroup,
+        type: 'gate',
+        position: { x: 0, y: 2.5, z: 20 }
+    };
+    debugLog("Gate created");
+
 }
+
 // Toggle gate
 function toggleGate() {
-    if (!gate) return;
-    
-    // Reverse the current state
+    if (!gate || !gate.userData) return;
     gateOpen = !gateOpen;
     gate.userData.isOpen = gateOpen;
-    
-    // Set the target angle (90 degrees = PI/2)
     gate.userData.targetRotation = gateOpen ? Math.PI / 2 : 0;
-
-    // Sound effect trigger
-    gateOpenSound.currentTime = 0;
-    gateOpenSound.volume = 0.3;
-    gateOpenSound.play().catch(() => {/* Ignore browser block */});
 }
 
 // Update gate animation
 function updateGate() {
     if (!gate || !gate.userData) return;
-    
-    const leftHinge = gate.userData.leftHinge;
-    const rightHinge = gate.userData.rightHinge;
-    const targetRotation = gate.userData.targetRotation;
+    const leftDoor = gate.userData.leftDoor;
+    const rightDoor = gate.userData.rightDoor;   
+    if (!leftDoor || !rightDoor) return;
+
+    // Animate gate opening/closing
+    const targetRot = gate.userData.targetRotation;
+    const currentLeftRot = leftDoor.rotation.y;
+    const currentRightRot = rightDoor.rotation.y;
+
+    // Smooth interpolation
     const speed = 0.05;
-    
-    // Smooth Interpolation
-    leftHinge.rotation.y += (targetRotation - leftHinge.rotation.y) * speed;
-    rightHinge.rotation.y += (-targetRotation - rightHinge.rotation.y) * speed;
+    leftDoor.rotation.y += (targetRot - currentLeftRot) * speed;
+    rightDoor.rotation.y += (-targetRot - currentRightRot) * speed;
 }
 
 function triggerLightning() {
