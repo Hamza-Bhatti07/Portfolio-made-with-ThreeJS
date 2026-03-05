@@ -10,12 +10,12 @@ const projects = {
         ]
     },
     slide: {
-        title: "Random Joke Generator Project",
-        description: "A simple web app utilizing JokeAPI to fetch and display jokes, with guardrails and filters in place to avoid NSFW and offensive jokes.",
-        technologies: ["Html", "CSS", "JavaScript", "JokeAPI"],
+        title: "Retrieval-Augmented Generation(RAG) for Clinical Reasoning Project",
+        description: "A Retrieval-Augmented Generation system designed to answer clinical queries using the MIMIC-IV-Ext dataset.",
+        technologies: ["RAG", "Pytorch", "Streamlit", "Flan-T5", "Sentence-Transformers", "FAISS"],
         links: [
-            { text: "Live Link", url: "https://hamza-bhatti07.github.io/Random-Joke-Generator/", type: "primary" },
-            { text: "Github", url: "https://github.com/Hamza-Bhatti07/Random-Joke-Generator/deployments", type: "secondary" }
+            { text: "Live Link", url: "https://rag-for-diagnostic-reasoning-for-clinical-notes-fm2mmdk9hzga4d.streamlit.app/", type: "primary" },
+            { text: "Github", url: "https://github.com/Hamza-Bhatti07/RAG-for-Diagnostic-Reasoning-for-Clinical-Notes", type: "secondary" }
         ]
     },
     seesaw: {
