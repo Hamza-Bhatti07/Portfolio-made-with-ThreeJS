@@ -38,12 +38,17 @@ const projects = {
     }
 };
 
-// Billboard text - EDIT THIS SECTION
+// Billboard text 
 const billboardText = {
-    name: "UNDER CONSTRUCTION!!!!",
-    title: "I'm a Computer Science Student \n learning, breaking, building. \n - AI/ML - InfoSec",
+    name: "Work in Progress!",
+    title: "I'm a CS Senior at FAST NUCES |  building, breaking, learning | - AI/ML - InfoSec - CyberSec", 
     subtitle: ""
 };
+
+function createTextLines(textString, delimiter = '|') {
+    return textString.split(delimiter);
+}
+const titleLines = createTextLines(billboardText.title, " | "); 
 
 // Three.js setup
 let scene, camera, renderer;
