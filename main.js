@@ -41,7 +41,7 @@ const projects = {
 // Billboard text - EDIT THIS SECTION
 const billboardText = {
     name: "UNDER CONSTRUCTION!!!!",
-    title: "I'm a Computer Science Student, learning, breaking, building. - AI/ML - InfoSec",
+    title: "I'm a Computer Science Student \n learning, breaking, building. \n - AI/ML - InfoSec",
     subtitle: ""
 };
 
